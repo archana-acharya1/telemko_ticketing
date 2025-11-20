@@ -27,10 +27,11 @@ class DarkTheme {
       scaffoldBackgroundColor: AppColors.darkBackground,
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.black,
-        foregroundColor: AppColors.primaryRed,
+        backgroundColor: AppColors.primaryRed,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
+
 
       cardColor: AppColors.darkCard,
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:telemko_support/presentation/screens/dashboard/payment_screen.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../widgets/quick_link_card.dart';
 import '../tickets/ticket_form_screen.dart';
 import '../tickets/gps_ticket_screen.dart';
@@ -18,9 +19,13 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title: Text("Telemko Support", style: AppTextStyles.headline2),
+        backgroundColor: AppColors.primaryRed,
+        foregroundColor: Colors.white,
+        title: Text(
+          "Telemko Support",
+          style: AppTextStyles.headline2.copyWith(color: Colors.white),
+        ),
         centerTitle: true,
-        // backgroundColor: const Color(0xFFE53935), // same pink as cards
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
@@ -33,6 +38,7 @@ class DashboardScreen extends StatelessWidget {
           )
         ],
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppPadding.lg),
         child: Column(

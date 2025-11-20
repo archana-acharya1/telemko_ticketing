@@ -28,7 +28,7 @@ class LightTheme {
 
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primaryRed,
-        foregroundColor: Colors.white ,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
 
