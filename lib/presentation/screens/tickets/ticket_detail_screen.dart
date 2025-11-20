@@ -1,0 +1,81 @@
+import 'package:flutter/material.dart';
+
+class TicketDetailScreen extends StatelessWidget {
+  final Map<String, dynamic> ticket;
+
+  const TicketDetailScreen({super.key, required this.ticket});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Ticket ${ticket["id"]}"),
+      ),
+
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+
+        child: Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Ticket Details",
+                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                detailItem("Ticket ID", ticket["id"]),
+                detailItem("Customer Name", ticket["name"]),
+                detailItem("Vehicle Number", ticket["vehicle"]),
+                detailItem("Status", ticket["status"]),
+
+                const SizedBox(height: 20),
+
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Actions coming soon..."),
+                      ),
+                    );
+                  },
+                  child: const Text("Take Action (Upcoming)"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget detailItem(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              )),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 16)),
+        ],
+      ),
+    );
+  }
+}
