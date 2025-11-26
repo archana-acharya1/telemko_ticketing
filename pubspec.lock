@@ -144,6 +144,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "10.12.0"
+  frappe_dart:
+    dependency: "direct main"
+    description:
+      name: frappe_dart
+      sha256: b1791ebc665d97a83b7426556342adaf39ffd18ee38b1ec38a27cf3b4398bead
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.5"
   http:
     dependency: transitive
     description:

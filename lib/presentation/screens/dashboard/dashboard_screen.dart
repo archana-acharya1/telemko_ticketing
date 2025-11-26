@@ -9,6 +9,7 @@ import '../tickets/dashcam_ticket_screen.dart';
 import '../auth/logout_screen.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_constants.dart';
+import '../tickets/ticket_history_screen.dart';
 import 'customer_support_screen.dart';
 import 'devices_screen.dart';
 
@@ -45,7 +46,6 @@ class DashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // LARGE CREATE SUPPORT TICKET CARD
             QuickLinkCard(
               title: "Create Support Ticket",
               icon: Icons.support_agent,
@@ -60,14 +60,13 @@ class DashboardScreen extends StatelessWidget {
 
             const SizedBox(height: AppPadding.lg),
 
-            // QUICK LINKS TITLE
             Text(
               "Quick Links",
               style: AppTextStyles.headline2.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: AppPadding.md),
 
-            // QUICK LINKS GRID (all pink)
+
             GridView.count(
               crossAxisCount: 3,
               shrinkWrap: true,
@@ -136,6 +135,17 @@ class DashboardScreen extends StatelessWidget {
                     );
                   },
                 ),
+                QuickLinkCard(
+                  title: "My\nTickets",
+                  icon: Icons.receipt_long,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TicketHistoryScreen(mobile: "")),
+                    );
+                  },
+                ),
+
               ],
             ),
           ],
