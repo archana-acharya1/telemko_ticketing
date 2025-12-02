@@ -35,9 +35,9 @@ class QuickLinkCard extends StatelessWidget {
             ? const EdgeInsets.all(AppPadding.sm)
             : const EdgeInsets.all(AppPadding.lg),
         decoration: BoxDecoration(
-          color: Colors.red.shade100, // soft pink
+          color: Colors.blue.shade100, // soft pink
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.primaryRed.withOpacity(0.7), width: 1.5),
+          border: Border.all(color: AppColors.primaryBlue.withOpacity(0.7), width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -50,28 +50,28 @@ class QuickLinkCard extends StatelessWidget {
             ? Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 36, color: AppColors.primaryRed),
+            Icon(icon, size: 36, color: AppColors.primaryBlue),
             const SizedBox(height: AppPadding.sm),
             Text(
               title,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyText1.copyWith(
-                  fontWeight: FontWeight.w600, color: AppColors.primaryRed),
+                  fontWeight: FontWeight.w600, color: AppColors.primaryBlue),
             ),
           ],
         )
             : Row(
           children: [
-            Icon(icon, size: 40, color: AppColors.primaryRed),
+            Icon(icon, size: 40, color: AppColors.primaryBlue),
             const SizedBox(width: AppPadding.lg),
             Expanded(
               child: Text(
                 title,
                 style: AppTextStyles.subtitle1
-                    .copyWith(fontWeight: FontWeight.w600, color: AppColors.primaryRed),
+                    .copyWith(fontWeight: FontWeight.w600, color: AppColors.primaryBlue),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 20, color: AppColors.primaryRed),
+            const Icon(Icons.arrow_forward_ios, size: 20, color: AppColors.primaryBlue),
           ],
         ),
       ),

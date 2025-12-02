@@ -13,11 +13,11 @@ class LightTheme {
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
 
-      iconTheme: const IconThemeData(color: AppColors.primaryRed),
+      iconTheme: const IconThemeData(color: AppColors.primaryBlue),
 
       colorScheme: const ColorScheme.light(
-        primary: AppColors.primaryRed,
-        secondary: AppColors.primaryRed,
+        primary: AppColors.primaryBlue,
+        secondary: AppColors.primaryBlue,
         surface: AppColors.lightCard,
         background: AppColors.lightBackground,
         onSurface: Colors.black,
@@ -27,7 +27,7 @@ class LightTheme {
       scaffoldBackgroundColor: AppColors.lightBackground,
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primaryRed,
+        backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -37,21 +37,21 @@ class LightTheme {
 
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
-        selectedItemColor: AppColors.primaryRed,
+        selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: Colors.black54,
       ),
 
       inputDecorationTheme: InputDecorationTheme(
-        prefixIconColor: AppColors.primaryRed,
-        suffixIconColor: AppColors.primaryRed,
+        prefixIconColor: AppColors.primaryBlue,
+        suffixIconColor: AppColors.primaryBlue,
         labelStyle: const TextStyle(color: Colors.black87),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
-          borderSide: const BorderSide(color: AppColors.lightRed),
+          borderSide: const BorderSide(color: AppColors.lightBlue),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
-          borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
+          borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
         ),
       ),
     );

@@ -21,7 +21,7 @@ class LogoutScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Logout"),
-        backgroundColor: AppColors.primaryRed,
+        backgroundColor: AppColors.primaryBlue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppPadding.lg),
@@ -31,7 +31,7 @@ class LogoutScreen extends StatelessWidget {
             Icon(
               Icons.logout,
               size: 80,
-              color: AppColors.primaryRed,
+              color: AppColors.primaryBlue,
             ),
 
             const SizedBox(height: AppPadding.lg),
@@ -51,7 +51,7 @@ class LogoutScreen extends StatelessWidget {
               child: AppButton(
                 text: "Logout",
                 onPressed: () => performLogout(context),
-                color: AppColors.primaryRed,
+                color: AppColors.primaryBlue,
               ),
             ),
 
@@ -62,7 +62,7 @@ class LogoutScreen extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: () => Navigator.pop(context),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.primaryRed),
+                  side: BorderSide(color: AppColors.primaryBlue),
                   padding: const EdgeInsets.symmetric(
                     vertical: AppPadding.md,
                     horizontal: AppPadding.lg,
@@ -71,7 +71,7 @@ class LogoutScreen extends StatelessWidget {
                 child: Text(
                   "Cancel",
                   style: AppTextStyles.buttonText.copyWith(
-                    color: AppColors.primaryRed,
+                    color: AppColors.primaryBlue,
                   ),
                 ),
               ),

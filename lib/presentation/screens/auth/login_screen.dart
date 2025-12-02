@@ -44,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Icon(
                 Icons.support_agent,
                 size: 90,
-                color: AppColors.primaryRed,
+                color: AppColors.primaryBlue,
               ),
 
               const SizedBox(height: AppPadding.md),
@@ -88,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () {},
                   child: const Text("Forgot Password?"),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primaryRed,
+                    foregroundColor: AppColors.primaryBlue,
                   ),
                 ),
               ),
@@ -100,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: AppButton(
                   text: "Login",
                   onPressed: isLoading ? () {} : handleLogin,
-                  color: AppColors.primaryRed,
+                  color: AppColors.primaryBlue,
                 ),
               ),
 
@@ -115,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
                 child: const Text("Continue as Guest"),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primaryRed,
+                  foregroundColor: AppColors.primaryBlue,
                 ),
               ),
             ],

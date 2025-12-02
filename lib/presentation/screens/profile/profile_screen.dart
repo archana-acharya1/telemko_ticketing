@@ -23,11 +23,11 @@ class ProfileScreen extends StatelessWidget {
             Center(
               child: CircleAvatar(
                 radius: 50,
-                backgroundColor: Colors.red.shade100,
+                backgroundColor: Colors.blue.shade100,
                 child: const Icon(
                   Icons.person,
                   size: 60,
-                  color: Colors.red,
+                  color: Colors.blue,
                 ),
               ),
             ),
@@ -87,7 +87,7 @@ class ProfileScreen extends StatelessWidget {
               height: 50,
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.red),
+                  side: const BorderSide(color: Colors.blue),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -102,7 +102,7 @@ class ProfileScreen extends StatelessWidget {
                   "Logout",
                   style: TextStyle(
                       fontSize: 18,
-                      color: Colors.red,
+                      color: Colors.blue,
                       fontWeight: FontWeight.w600),
                 ),
               ),

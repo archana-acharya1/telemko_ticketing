@@ -44,11 +44,11 @@ class _MainNavbarState extends State<MainNavbar> {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
 
-        selectedItemColor: AppColors.primaryRed,
+        selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: Colors.grey.shade600,
 
         selectedIconTheme: const IconThemeData(
-          color: AppColors.primaryRed,
+          color: AppColors.primaryBlue,
           size: 28,
         ),
 

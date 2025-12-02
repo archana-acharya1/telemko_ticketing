@@ -20,7 +20,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primaryRed,
+        backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
         title: Text(
           "Telemko Support",

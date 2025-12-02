@@ -13,11 +13,11 @@ class DarkTheme {
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
 
-      iconTheme: const IconThemeData(color: AppColors.primaryRed),
+      iconTheme: const IconThemeData(color: AppColors.primaryBlue),
 
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.primaryRed,
-        secondary: AppColors.primaryRed,
+        primary: AppColors.primaryBlue,
+        secondary: AppColors.primaryBlue,
         surface: AppColors.darkCard,
         background: AppColors.darkBackground,
         onSurface: Colors.white,
@@ -27,7 +27,7 @@ class DarkTheme {
       scaffoldBackgroundColor: AppColors.darkBackground,
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primaryRed,
+        backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -37,13 +37,14 @@ class DarkTheme {
 
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Color(0xFF1A1A1A),
-        selectedItemColor: AppColors.primaryRed,
+        // selectedItemColor: AppColors.primaryRed,
+        selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: Colors.grey,
       ),
 
       inputDecorationTheme: InputDecorationTheme(
-        prefixIconColor: AppColors.primaryRed,
-        suffixIconColor: AppColors.primaryRed,
+        prefixIconColor: AppColors.primaryBlue,
+        suffixIconColor: AppColors.primaryBlue,
         labelStyle: const TextStyle(color: Colors.white70),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -51,7 +52,7 @@ class DarkTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
-          borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
+          borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
         ),
       ),
     );

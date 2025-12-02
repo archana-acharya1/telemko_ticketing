@@ -12,7 +12,7 @@ class AppButton extends StatelessWidget {
     super.key,
     required this.text,
     required this.onPressed,
-    this.color = AppColors.primaryRed,
+    this.color = AppColors.primaryBlue,
   });
 
   @override

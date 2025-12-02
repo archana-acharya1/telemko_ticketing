@@ -57,7 +57,7 @@ class CustomerSupportScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text("Customer Support", style: AppTextStyles.headline2),
         centerTitle: true,
-        backgroundColor: AppColors.primaryRed,
+        backgroundColor: AppColors.primaryBlue,
       ),
 
       body: Padding(
@@ -108,7 +108,7 @@ class CustomerSupportScreen extends StatelessWidget {
             _buildSupportTile(
               context: context,
               icon: Icons.mail_outline,
-              iconColor: AppColors.primaryRed,
+              iconColor: AppColors.primaryBlue,
               title: "Email Us",
               onTap: () => openEmail(context),
             ),
