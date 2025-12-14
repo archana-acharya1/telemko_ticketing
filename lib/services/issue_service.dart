@@ -2,6 +2,19 @@ import 'dart:io';
 import '../data/api/frappe_api.dart';
 
 class IssueService {
+  /// Create a new Issue (ticket)
+  static Future<Map<String, dynamic>> createIssue(
+      Map<String, dynamic> data) async {
+    final resp = await FrappeApi.post("/api/resource/Issue", data);
+    return resp;
+  }
+
+  /// Upload an image and get URL (used before creating Issue)
+  static Future<String> uploadImageAndGetUrl(File file) async {
+    return await FrappeApi.uploadFileAndGetUrl(file, doctype: 'Issue');
+  }
+
+  /// Fetch list of issues (optional filters: mobile or email)
   static Future<List<dynamic>> fetchIssues({
     String? mobile,
     String? raisedByEmail,
@@ -27,18 +40,9 @@ class IssueService {
     );
   }
 
-  static Future<Map<String, dynamic>> createIssue(
-      Map<String, dynamic> data) async {
-    final resp = await FrappeApi.post("/api/resource/Issue", data);
-    return resp;
-  }
-
+  /// Get a single Issue details by name
   static Future<Map<String, dynamic>> getIssue(String issueName) async {
     final resp = await FrappeApi.get("/api/resource/Issue/$issueName");
     return resp["data"] ?? {};
-  }
-
-  static Future<void> uploadAttachment(String ticketId, File file) async {
-    await FrappeApi.uploadFile(file, doctype: "Issue", docname: ticketId);
   }
 }

@@ -15,16 +15,15 @@ class TicketFormScreen extends StatefulWidget {
 class _TicketFormScreenState extends State<TicketFormScreen> {
   final phoneController = TextEditingController();
   final vehicleController = TextEditingController();
-  // final nameController = TextEditingController();
   final remarksController = TextEditingController();
 
   final ImagePicker _picker = ImagePicker();
   List<File> attachments = [];
+  List<String> uploadedFileUrls = [];
 
   List<String> customerList = [];
   String? selectedCustomer;
   bool loadingCustomers = true;
-
   bool isLoading = false;
 
   @override
@@ -48,18 +47,41 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     }
   }
 
-  Future<void> pickAttachment() async {
+  /// Pick and upload image immediately
+  Future<void> pickAndUploadAttachment() async {
     final XFile? file = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 70,
     );
-    if (file != null) setState(() => attachments.add(File(file.path)));
+    if (file == null) return;
+
+    final localFile = File(file.path);
+    setState(() => attachments.add(localFile));
+
+    setState(() => isLoading = true);
+    try {
+      final url = await IssueService.uploadImageAndGetUrl(localFile);
+      setState(() => uploadedFileUrls.add(url));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Uploaded: ${localFile.path.split('/').last}")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Upload failed: $e")),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
   void removeAttachment(int index) {
-    setState(() => attachments.removeAt(index));
+    setState(() {
+      attachments.removeAt(index);
+      if (index < uploadedFileUrls.length) uploadedFileUrls.removeAt(index);
+    });
   }
 
+  /// Submit ticket with uploaded images
   Future<void> submitTicket() async {
     if (phoneController.text.isEmpty ||
         vehicleController.text.isEmpty ||
@@ -76,22 +98,21 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       final ticketData = {
         "customer": selectedCustomer,
         "subject": "Support Ticket",
-        "custom_mobile_number": phoneController.text,
-        "custom_vehical_number": vehicleController.text,
-        "custom_issue": remarksController.text,
+        "custom_mobile_number": phoneController.text.trim(),
+        "custom_vehical_number": vehicleController.text.trim(),
+        "custom_issue": remarksController.text.trim(),
+        "attachments": uploadedFileUrls,
       };
 
       final createdTicket = await IssueService.createIssue(ticketData);
-      final ticketId = createdTicket["data"]["name"];
-
-      for (var file in attachments) {
-        await IssueService.uploadAttachment(ticketId, file);
-      }
 
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => TicketHistoryScreen(mobile: phoneController.text)),
+        MaterialPageRoute(
+          builder: (_) =>
+              TicketHistoryScreen(mobile: phoneController.text),
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,7 +135,8 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
             padding: const EdgeInsets.all(16),
             child: Card(
               elevation: 3,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -128,13 +150,15 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                     TextField(
                       controller: phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: "Mobile Number"),
+                      decoration:
+                      const InputDecoration(labelText: "Mobile Number"),
                     ),
                     const SizedBox(height: 15),
 
                     TextField(
                       controller: vehicleController,
-                      decoration: const InputDecoration(labelText: "Vehicle Number"),
+                      decoration:
+                      const InputDecoration(labelText: "Vehicle Number"),
                     ),
                     const SizedBox(height: 15),
 
@@ -156,25 +180,26 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                         setState(() => selectedCustomer = value);
                       },
                     ),
-
                     const SizedBox(height: 15),
 
                     TextField(
                       controller: remarksController,
                       maxLines: 4,
                       decoration: const InputDecoration(
-                          labelText: "Remarks (optional)", alignLabelWithHint: true),
+                          labelText: "Remarks (optional)",
+                          alignLabelWithHint: true),
                     ),
                     const SizedBox(height: 20),
 
                     Text("Attachments (optional)",
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 10),
 
                     ElevatedButton.icon(
-                      onPressed: pickAttachment,
+                      onPressed: pickAndUploadAttachment,
                       icon: const Icon(Icons.add_a_photo),
-                      label: const Text("Add Attachment"),
+                      label: const Text("Pick & Upload Image"),
                     ),
                     const SizedBox(height: 12),
 
@@ -206,7 +231,8 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                                       color: theme.colorScheme.primary,
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.close, size: 16, color: Colors.white),
+                                    child: const Icon(Icons.close,
+                                        size: 16, color: Colors.white),
                                   ),
                                 ),
                               ),
@@ -220,7 +246,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: submitTicket,
-                        child: const Text("Send"),
+                        child: const Text("Send Ticket"),
                       ),
                     ),
                   ],

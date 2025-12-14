@@ -35,7 +35,7 @@ import 'package:http/http.dart' as http;
 
 class CustomerService {
   static Future<List<String>> fetchCustomers() async {
-    final url = "http://simtrack.deskgoo.com/api/resource/Customer";
+    final url = "http://erp.telemko.com/api/resource/Customer";
 
     final response = await http.get(
       Uri.parse(url),

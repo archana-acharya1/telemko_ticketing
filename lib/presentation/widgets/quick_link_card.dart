@@ -13,6 +13,8 @@ class QuickLinkCard extends StatelessWidget {
   final QuickLinkCardVariant variant;
   final double? width;
   final double? height;
+  final Color textColor; // ✅ NEW PARAMETER
+  final Color? backgroundColor; // Optional background override
 
   const QuickLinkCard({
     super.key,
@@ -22,31 +24,41 @@ class QuickLinkCard extends StatelessWidget {
     this.variant = QuickLinkCardVariant.small,
     this.width,
     this.height,
+    this.textColor = Colors.black87, // default
+    this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isSmall = variant == QuickLinkCardVariant.small;
+
     return PressScale(
       onTap: onTap,
       child: Container(
-        width: width ?? (variant == QuickLinkCardVariant.small ? 120 : double.infinity),
-        height: height ?? (variant == QuickLinkCardVariant.small ? 130 : 80),
-        padding: variant == QuickLinkCardVariant.small
+        width: width ?? (isSmall ? 120 : double.infinity),
+        height: height ??
+            (isSmall
+                ? 140
+                : 120), //For large cards
+        padding: isSmall
             ? const EdgeInsets.all(AppPadding.sm)
             : const EdgeInsets.all(AppPadding.lg),
         decoration: BoxDecoration(
-          color: Colors.blue.shade100, // soft pink
+          color: backgroundColor ?? Colors.white, // keeping white as default
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.primaryBlue.withOpacity(0.7), width: 1.5),
+          border: Border.all(
+            color: AppColors.primaryBlue.withOpacity(0.3),
+            width: 1.2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: variant == QuickLinkCardVariant.small
+        child: isSmall
             ? Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -55,8 +67,10 @@ class QuickLinkCard extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: AppTextStyles.bodyText1.copyWith(
-                  fontWeight: FontWeight.w600, color: AppColors.primaryBlue),
+                  fontWeight: FontWeight.w600, color: textColor),
             ),
           ],
         )
@@ -67,11 +81,14 @@ class QuickLinkCard extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: AppTextStyles.subtitle1
-                    .copyWith(fontWeight: FontWeight.w600, color: AppColors.primaryBlue),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.subtitle1.copyWith(
+                    fontWeight: FontWeight.w600, color: textColor),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 20, color: AppColors.primaryBlue),
+            const Icon(Icons.arrow_forward_ios,
+                size: 20, color: AppColors.primaryBlue),
           ],
         ),
       ),
