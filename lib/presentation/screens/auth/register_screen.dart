@@ -48,12 +48,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Simulate registration delay
+    //loading simulation for delay
     setState(() => isLoading = true);
     await Future.delayed(const Duration(seconds: 1));
     setState(() => isLoading = false);
 
-    // Navigate to login (replace with real registration logic)
+    // Navigate to login, will change later
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -108,7 +108,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 const SizedBox(height: 40),
 
-                // REGISTER CARD
+                // register card
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -140,7 +140,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       const SizedBox(height: AppPadding.md),
 
-                      // ✅ Create Password
+                      //  Create Password
                       AppTextField(
                         controller: createPasswordController,
                         hintText: "Create Password",
@@ -162,7 +162,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       const SizedBox(height: AppPadding.md),
 
-                      // ✅ Confirm Password
+                      //  Confirm Password
                       AppTextField(
                         controller: confirmPasswordController,
                         hintText: "Confirm Password",

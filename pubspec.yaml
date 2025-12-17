@@ -19,6 +19,7 @@ dependencies:
   flutter_phone_direct_caller: ^2.2.1
   image_picker: ^1.2.1
   frappe_dart: ^0.0.5
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:
