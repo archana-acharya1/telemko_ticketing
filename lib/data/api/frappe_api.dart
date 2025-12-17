@@ -19,15 +19,21 @@ class FrappeApi {
     final uri = Uri.parse("$baseUrl$endpoint");
     final res =
     await http.post(uri, headers: headers, body: jsonEncode(body));
-    if (res.statusCode == 200) return jsonDecode(res.body);
-    throw Exception("POST request failed: ${res.body}");
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body);
+    }
+    throw Exception("POST failed: ${res.body}");
   }
 
   static Future<Map<String, dynamic>> get(String endpoint) async {
     final uri = Uri.parse("$baseUrl$endpoint");
     final res = await http.get(uri, headers: headers);
-    if (res.statusCode == 200) return jsonDecode(res.body);
-    throw Exception("GET request failed: ${res.body}");
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body);
+    }
+    throw Exception("GET failed: ${res.body}");
   }
 
   static Future<List<dynamic>> getList({
@@ -37,44 +43,57 @@ class FrappeApi {
     int limit = 50,
   }) async {
     final uri = Uri.parse("$baseUrl/api/method/frappe.client.get_list");
+
     final body = {
       "doctype": doctype,
       "fields": fields ?? ["*"],
       if (filters != null) "filters": filters,
       "limit": limit,
     };
+
     final res =
     await http.post(uri, headers: headers, body: jsonEncode(body));
-    if (res.statusCode == 200) return jsonDecode(res.body)["message"];
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body)["message"];
+    }
     throw Exception("getList failed: ${res.body}");
   }
 
-  /// Upload a file and return its URL
-  static Future<String> uploadFileAndGetUrl(File file,
-      {required String doctype, bool isPrivate = false}) async {
+  /// ✅ CORRECT ERPNext attachment upload
+  static Future<String> uploadFile({
+    required File file,
+    required String doctype,
+    required String docname,
+    bool isPrivate = false,
+  }) async {
     final uri = Uri.parse("$baseUrl/api/method/upload_file");
-    var request = http.MultipartRequest('POST', uri);
+
+    final request = http.MultipartRequest("POST", uri);
     request.headers['Authorization'] = 'token $apiToken';
 
     request.fields['attached_to_doctype'] = doctype;
-    request.fields['attached_to_name'] = '';
+    request.fields['attached_to_name'] = docname;
     request.fields['is_private'] = isPrivate ? '1' : '0';
 
-    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
-    final split = mimeType.split('/');
+    final mimeType =
+        lookupMimeType(file.path) ?? 'application/octet-stream';
+    final parts = mimeType.split('/');
 
-    request.files.add(await http.MultipartFile.fromPath(
-      'file',
-      file.path,
-      filename: path.basename(file.path),
-      contentType: MediaType(split[0], split[1]),
-    ));
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file',
+        file.path,
+        filename: path.basename(file.path),
+        contentType: MediaType(parts[0], parts[1]),
+      ),
+    );
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
 
     if (response.statusCode != 200) {
-      throw Exception("File upload failed: ${response.body}");
+      throw Exception("Upload failed: ${response.body}");
     }
 
     final body = jsonDecode(response.body);
