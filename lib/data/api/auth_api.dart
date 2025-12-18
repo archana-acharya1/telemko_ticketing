@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../presentation/screens/dashboard/lib/data/local/session_manager.dart';
 
 class AuthApi {
   static const String baseUrl = "http://erp.telemko.com";
 
-  /// USER LOGIN (email OR username)
+  /// Login using email, username, or mobile
   static Future<Map<String, dynamic>> login({
-    required String usr,
-    required String pwd,
+    required String identifier, // email / username / mobile
+    required String password,
   }) async {
     final uri = Uri.parse("$baseUrl/api/method/login");
 
@@ -18,39 +19,54 @@ class AuthApi {
         "Accept": "application/json",
       },
       body: {
-        "usr": usr,
-        "pwd": pwd,
+        "usr": identifier,
+        "pwd": password,
       },
     );
 
-    if (response.statusCode == 401) {
-      throw Exception("Wrong username or password");
-    }
+    print("Login response status: ${response.statusCode}");
+    print("Login response body: ${response.body}");
 
     if (response.statusCode != 200) {
-      throw Exception("Login failed");
+      throw Exception("Login failed: ${response.body}");
     }
 
-    final body = jsonDecode(response.body);
+    // Extract SID from cookies
+    final sid = response.headers['set-cookie']
+        ?.split(';')
+        .firstWhere((c) => c.startsWith('sid='), orElse: () => '')
+        .replaceFirst('sid=', '');
 
-    // Extract sid cookie
-    final rawCookie = response.headers['set-cookie'];
-    String? sid;
+    print("Extracted SID: $sid");
 
-    if (rawCookie != null) {
-      for (final part in rawCookie.split(';')) {
-        if (part.trim().startsWith('sid=')) {
-          sid = part.trim();
-          break;
-        }
-      }
+    if (sid == null || sid.isEmpty) {
+      throw Exception("Failed to get session ID");
     }
 
+    // Save session
+    await SessionManager.saveUser(
+      email: identifier,
+      mobile: identifier,
+      sid: sid,
+    );
+
+    // Return user data
     return {
-      "success": true,
-      "full_name": body["full_name"],
-      "home_page": body["home_page"],
+      "email": identifier,
+      "mobile": identifier,
       "sid": sid,
     };
+  }
+
+  /// Logout
+  static Future<void> logout() async {
+    final uri = Uri.parse("$baseUrl/api/method/logout");
+    await http.get(uri);
+    await SessionManager.clearSession();
+  }
+
+  /// Get SID
+  static Future<String?> getSid() async {
+    return await SessionManager.getSid();
   }
 }

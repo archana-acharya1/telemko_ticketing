@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-
 import '../../../services/issue_service.dart';
+import 'ticket_detail_screen.dart';
 
 class TicketHistoryScreen extends StatefulWidget {
-  final String mobile;
-
-  const TicketHistoryScreen({super.key, required this.mobile});
+  const TicketHistoryScreen({super.key});
 
   @override
   State<TicketHistoryScreen> createState() => _TicketHistoryScreenState();
@@ -29,10 +27,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
     });
 
     try {
-      final result = await IssueService.fetchIssues(
-        mobile: widget.mobile,
-      );
-
+      final result = await IssueService.fetchMyIssues();
       setState(() {
         issues = result;
         isLoading = false;
@@ -46,11 +41,10 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
   }
 
   Widget _buildListTile(Map<String, dynamic> issue) {
-    final name = issue['name'] ?? "";
+    final id = issue['name'] ?? "";
     final subject = issue['subject'] ?? "(no subject)";
     final status = issue['status'] ?? "";
     final customer = issue['customer'] ?? "";
-    final mobile = issue['custom_mobile_number'] ?? "";
     final vehicle = issue['custom_vehical_number'] ?? "";
     final openingDate = issue['opening_date'] ?? "";
 
@@ -70,14 +64,8 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (customer.isNotEmpty) Text(customer),
-            Row(
-              children: [
-                if (mobile.isNotEmpty) Text(mobile, style: const TextStyle(fontSize: 12)),
-                if (mobile.isNotEmpty && vehicle.isNotEmpty) const SizedBox(width: 8),
-                if (vehicle.isNotEmpty) Text(vehicle, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
+            if (customer.isNotEmpty) Text("Customer: $customer"),
+            if (vehicle.isNotEmpty) Text("Vehicle: $vehicle", style: const TextStyle(fontSize: 12)),
             if (openingDate.isNotEmpty) Text("Opened: $openingDate", style: const TextStyle(fontSize: 12)),
           ],
         ),
@@ -85,12 +73,13 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600)),
-            const Icon(Icons.chevron_right)
+            const Icon(Icons.chevron_right),
           ],
         ),
-        onTap: () {
-          // TODO: navigate to details screen
-        },
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => TicketDetailScreen(ticket: issue)),
+        ),
       ),
     );
   }
@@ -131,14 +120,16 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
           itemCount: issues.length,
           itemBuilder: (context, index) {
             final item = issues[index];
-            final issueMap = item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item);
+            final issueMap = item is Map<String, dynamic>
+                ? item
+                : Map<String, dynamic>.from(item);
             return _buildListTile(issueMap);
           },
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: navigate to create ticket screen
+          // Navigate to ticket creation
         },
         child: const Icon(Icons.add),
       ),

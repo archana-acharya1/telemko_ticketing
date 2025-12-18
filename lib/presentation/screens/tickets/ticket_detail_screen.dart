@@ -9,21 +9,17 @@ class TicketDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Ticket ${ticket["id"]}"),
+        title: Text("Ticket ${ticket["name"] ?? ticket["id"] ?? ""}"),
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16),
-
         child: Card(
           elevation: 3,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-
           child: Padding(
             padding: const EdgeInsets.all(20),
-
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -33,16 +29,14 @@ class TicketDetailScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                detailItem("Ticket ID", ticket["id"]),
-                detailItem("Customer Name", ticket["name"]),
-                detailItem("Vehicle Number", ticket["vehicle"]),
-                detailItem("Status", ticket["status"]),
-
+                detailItem("Ticket ID", ticket["name"] ?? ticket["id"] ?? ""),
+                detailItem("Customer Name", ticket["customer"] ?? ""),
+                detailItem("Vehicle Number", ticket["custom_vehical_number"] ?? ""),
+                detailItem("Status", ticket["status"] ?? ""),
+                detailItem("Subject", ticket["subject"] ?? ""),
+                detailItem("Description", ticket["description"] ?? ""),
                 const SizedBox(height: 20),
-
                 ElevatedButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -73,7 +67,7 @@ class TicketDetailScreen extends StatelessWidget {
                 color: Colors.grey,
               )),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 16)),
+          Text(value.isNotEmpty ? value : "-", style: const TextStyle(fontSize: 16)),
         ],
       ),
     );
