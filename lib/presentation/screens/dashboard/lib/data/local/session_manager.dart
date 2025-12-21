@@ -1,63 +1,48 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SessionManager {
-  static const _keyEmail = "user_email";
-  static const _keyMobile = "user_mobile";
-  static const _keySid = "user_sid";
+  static const _keyIdentifier = "identifier"; // email / mobile / username
+  static const _keyEmail = "email";
+  static const _keyMobile = "mobile";
+  static const _keySid = "sid";
 
-  /// Save user session
+  /// Save user session (single source of truth)
   static Future<void> saveUser({
-    required String email,
-    required String mobile,
+    required String identifier,
+    String? email,
+    String? mobile,
     required String sid,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyEmail, email);
-    await prefs.setString(_keyMobile, mobile);
+    await prefs.setString(_keyIdentifier, identifier);
     await prefs.setString(_keySid, sid);
+
+    if (email != null) await prefs.setString(_keyEmail, email);
+    if (mobile != null) await prefs.setString(_keyMobile, mobile);
   }
 
-  /// Save email only
-  static Future<void> saveUserEmail(String email) async {
+  static Future<String?> getIdentifier() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyEmail, email);
+    return prefs.getString(_keyIdentifier);
   }
 
-  /// Save mobile only
-  static Future<void> saveUserMobile(String mobile) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyMobile, mobile);
-  }
-
-  /// Save SID only
-  static Future<void> saveSid(String sid) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keySid, sid);
-  }
-
-  /// Get user email
-  static Future<String?> getUserEmail() async {
+  static Future<String?> getEmail() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyEmail);
   }
 
-  /// Get user mobile
-  static Future<String?> getUserMobile() async {
+  static Future<String?> getMobile() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyMobile);
   }
 
-  /// Get SID
   static Future<String?> getSid() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keySid);
   }
 
-  /// Clear session
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyEmail);
-    await prefs.remove(_keyMobile);
-    await prefs.remove(_keySid);
+    await prefs.clear();
   }
 }

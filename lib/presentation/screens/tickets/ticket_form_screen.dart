@@ -15,20 +15,36 @@ class TicketFormScreen extends StatefulWidget {
 class _TicketFormScreenState extends State<TicketFormScreen> {
   final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _customerController = TextEditingController();
 
   File? _selectedImage;
   bool _loading = false;
 
-  /// Pick image from gallery
-  Future<void> pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => _selectedImage = File(picked.path));
+  @override
+  void initState() {
+    super.initState();
+    _initializeUser();
+  }
+
+  Future<void> _initializeUser() async {
+    final email = await SessionManager.getEmail();
+    if (email != null && email.isNotEmpty) {
+      final mobile = await CustomerService.fetchMobileByEmail(email);
+      final customer = await CustomerService.fetchCustomerByEmail(email);
+      setState(() {
+        _mobileController.text = mobile ?? "";
+        _customerController.text = customer ?? "";
+      });
     }
   }
 
-  /// Submit ticket
+  Future<void> pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) setState(() => _selectedImage = File(picked.path));
+  }
+
   Future<void> submitTicket() async {
     if (_subjectController.text.isEmpty || _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -40,22 +56,21 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     setState(() => _loading = true);
 
     try {
-      // ⃣ Get logged-in user email
-      final userEmail = await SessionManager.getUserEmail();
-      if (userEmail == null) throw Exception("User not logged in");
+      // Fetch logged-in user's email
+      final email = await SessionManager.getEmail();
+      if (email == null || email.isEmpty) {
+        throw Exception("Logged-in email not found");
+      }
 
-      //  Get customer name linked to user
-      final customerName = await CustomerService.fetchCustomerForUser(userEmail);
+      // Call createIssue with named parameters
+      final issueId = await IssueService.createIssue(
+        subject: _subjectController.text,
+        description: _descriptionController.text,
+        customer: _customerController.text,
+        raisedBy: email, // use the fetched email
+        customVehicleNumber: _mobileController.text,
+      );
 
-      //  Create Issue
-      final issueId = await IssueService.createIssue({
-        "subject": _subjectController.text,
-        "description": _descriptionController.text,
-        "customer": customerName ?? "",
-        "raised_by": userEmail,
-      });
-
-      //  Attach image if selected
       if (_selectedImage != null) {
         await IssueService.attachImage(issueId: issueId, image: _selectedImage!);
       }
@@ -63,8 +78,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Ticket created successfully")),
       );
-
-      Navigator.pop(context); // Go back to ticket history
+      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
@@ -74,42 +88,92 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     }
   }
 
+
+
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _descriptionController.dispose();
+    _mobileController.dispose();
+    _customerController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text("Create Ticket")),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _subjectController,
-              decoration: const InputDecoration(labelText: "Subject"),
+        child: Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Create Support Ticket",
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+
+                // Mobile (read-only)
+                TextField(
+                  controller: _mobileController,
+                  decoration: const InputDecoration(labelText: "Mobile Number"),
+                  // readOnly: true,
+                ),
+                const SizedBox(height: 16),
+
+                // Customer (read-only)
+                TextField(
+                  controller: _customerController,
+                  decoration: const InputDecoration(labelText: "Customer Name"),
+                  // readOnly: true,
+                ),
+                const SizedBox(height: 16),
+
+                // Subject
+                TextField(
+                  controller: _subjectController,
+                  decoration: const InputDecoration(labelText: "Issue Subject"),
+                ),
+                const SizedBox(height: 16),
+
+                // Description
+                TextField(
+                  controller: _descriptionController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: "Description"),
+                ),
+                const SizedBox(height: 16),
+
+                // Image upload
+                ElevatedButton.icon(
+                  onPressed: pickImage,
+                  icon: const Icon(Icons.add_a_photo),
+                  label: const Text("Upload Image"),
+                ),
+                if (_selectedImage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text("Image selected: ${_selectedImage!.path.split('/').last}"),
+                  ),
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : submitTicket,
+                    child: _loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text("Submit Ticket"),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: "Description"),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: pickImage,
-              child: const Text("Upload Image"),
-            ),
-            if (_selectedImage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text("Image selected"),
-              ),
-            const Spacer(),
-            ElevatedButton(
-              onPressed: _loading ? null : submitTicket,
-              child: _loading
-                  ? const CircularProgressIndicator()
-                  : const Text("Submit Ticket"),
-            ),
-          ],
+          ),
         ),
       ),
     );

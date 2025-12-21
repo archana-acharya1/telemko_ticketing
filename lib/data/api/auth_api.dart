@@ -5,9 +5,9 @@ import '../../presentation/screens/dashboard/lib/data/local/session_manager.dart
 class AuthApi {
   static const String baseUrl = "http://erp.telemko.com";
 
-  /// Login using email, username, or mobile
-  static Future<Map<String, dynamic>> login({
-    required String identifier, // email / username / mobile
+  /// Login using email / username / mobile
+  static Future<void> login({
+    required String identifier,
     required String password,
   }) async {
     final uri = Uri.parse("$baseUrl/api/method/login");
@@ -24,49 +24,33 @@ class AuthApi {
       },
     );
 
-    print("Login response status: ${response.statusCode}");
-    print("Login response body: ${response.body}");
-
     if (response.statusCode != 200) {
-      throw Exception("Login failed: ${response.body}");
+      throw Exception("Login failed");
     }
 
-    // Extract SID from cookies
-    final sid = response.headers['set-cookie']
-        ?.split(';')
-        .firstWhere((c) => c.startsWith('sid='), orElse: () => '')
+    final cookie = response.headers['set-cookie'];
+    if (cookie == null) {
+      throw Exception("No session cookie received");
+    }
+
+    final sid = cookie
+        .split(';')
+        .firstWhere((e) => e.startsWith('sid='))
         .replaceFirst('sid=', '');
 
-    print("Extracted SID: $sid");
+    final isEmail = identifier.contains('@');
+    final isMobile = RegExp(r'^\d+$').hasMatch(identifier);
 
-    if (sid == null || sid.isEmpty) {
-      throw Exception("Failed to get session ID");
-    }
-
-    // Save session
     await SessionManager.saveUser(
-      email: identifier,
-      mobile: identifier,
+      identifier: identifier,
+      email: isEmail ? identifier : null,
+      mobile: isMobile ? identifier : null,
       sid: sid,
     );
-
-    // Return user data
-    return {
-      "email": identifier,
-      "mobile": identifier,
-      "sid": sid,
-    };
   }
 
-  /// Logout
   static Future<void> logout() async {
-    final uri = Uri.parse("$baseUrl/api/method/logout");
-    await http.get(uri);
+    await http.get(Uri.parse("$baseUrl/api/method/logout"));
     await SessionManager.clearSession();
-  }
-
-  /// Get SID
-  static Future<String?> getSid() async {
-    return await SessionManager.getSid();
   }
 }

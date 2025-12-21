@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../services/issue_service.dart';
-import 'ticket_detail_screen.dart';
+import '../dashboard/lib/data/local/session_manager.dart';
 
 class TicketHistoryScreen extends StatefulWidget {
   const TicketHistoryScreen({super.key});
@@ -10,128 +10,60 @@ class TicketHistoryScreen extends StatefulWidget {
 }
 
 class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
-  bool isLoading = true;
-  String? errorMessage;
-  List<dynamic> issues = [];
+  List<dynamic> tickets = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadIssues();
+    _fetchTickets();
   }
 
-  Future<void> _loadIssues() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
-
+  Future<void> _fetchTickets() async {
+    setState(() => _loading = true);
     try {
-      final result = await IssueService.fetchMyIssues();
-      setState(() {
-        issues = result;
-        isLoading = false;
-      });
+      tickets = await IssueService.fetchMyIssues();
     } catch (e) {
-      setState(() {
-        errorMessage = e.toString();
-        isLoading = false;
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching tickets: $e")),
+      );
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
-  Widget _buildListTile(Map<String, dynamic> issue) {
-    final id = issue['name'] ?? "";
-    final subject = issue['subject'] ?? "(no subject)";
-    final status = issue['status'] ?? "";
-    final customer = issue['customer'] ?? "";
-    final vehicle = issue['custom_vehical_number'] ?? "";
-    final openingDate = issue['opening_date'] ?? "";
-
-    Color statusColor;
-    if (status.toLowerCase().contains('closed')) {
-      statusColor = Colors.green;
-    } else if (status.toLowerCase().contains('open')) {
-      statusColor = Colors.orange;
-    } else {
-      statusColor = Colors.grey;
-    }
-
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-      child: ListTile(
-        title: Text(subject, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (customer.isNotEmpty) Text("Customer: $customer"),
-            if (vehicle.isNotEmpty) Text("Vehicle: $vehicle", style: const TextStyle(fontSize: 12)),
-            if (openingDate.isNotEmpty) Text("Opened: $openingDate", style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600)),
-            const Icon(Icons.chevron_right),
-          ],
-        ),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => TicketDetailScreen(ticket: issue)),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('My Tickets')),
-      body: RefreshIndicator(
-        onRefresh: _loadIssues,
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : errorMessage != null
-            ? ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            const SizedBox(height: 80),
-            Center(child: Text('Error: $errorMessage')),
-            const SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                onPressed: _loadIssues,
-                child: const Text('Retry'),
+      appBar: AppBar(title: const Text("My Tickets")),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : tickets.isEmpty
+          ? const Center(child: Text("No tickets found"))
+          : ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: tickets.length,
+        itemBuilder: (context, index) {
+          final t = tickets[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: ListTile(
+              title: Text(t["subject"] ?? ""),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Customer: ${t["customer"] ?? ""}"),
+                  Text("Mobile: ${t["custom_vehical_number"] ?? ""}"),
+                  Text("Status: ${t["status"] ?? ""}"),
+                ],
               ),
+              trailing: Text(t["opening_date"]?.toString().split(" ")[0] ?? ""),
             ),
-          ],
-        )
-            : issues.isEmpty
-            ? ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 120),
-            Center(child: Text('No tickets found')),
-          ],
-        )
-            : ListView.builder(
-          padding: const EdgeInsets.only(top: 12, bottom: 20),
-          itemCount: issues.length,
-          itemBuilder: (context, index) {
-            final item = issues[index];
-            final issueMap = item is Map<String, dynamic>
-                ? item
-                : Map<String, dynamic>.from(item);
-            return _buildListTile(issueMap);
-          },
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Navigate to ticket creation
+          );
         },
-        child: const Icon(Icons.add),
       ),
     );
   }
