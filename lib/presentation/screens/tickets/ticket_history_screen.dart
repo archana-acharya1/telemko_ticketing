@@ -22,7 +22,16 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
   Future<void> _fetchTickets() async {
     setState(() => _loading = true);
     try {
-      tickets = await IssueService.fetchMyIssues();
+      final email = await SessionManager.getEmail();
+      if (email != null) {
+        tickets = await IssueService.fetchIssuesByEmail(email);
+
+        tickets.sort((a, b) {
+          final dateA = DateTime.tryParse(a["opening_date"] ?? "") ?? DateTime(2000);
+          final dateB = DateTime.tryParse(b["opening_date"] ?? "") ?? DateTime(2000);
+          return dateB.compareTo(dateA); // Newest first
+        });
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error fetching tickets: $e")),
@@ -31,7 +40,6 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
       setState(() => _loading = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +64,8 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Customer: ${t["customer"] ?? ""}"),
-                  Text("Mobile: ${t["custom_vehical_number"] ?? ""}"),
+                  Text("Mobile: ${t["custom_mobile_number"] ?? ""}"),
+                  Text("Vehicle: ${t["custom_vehical_number"] ?? ""}"),
                   Text("Status: ${t["status"] ?? ""}"),
                 ],
               ),

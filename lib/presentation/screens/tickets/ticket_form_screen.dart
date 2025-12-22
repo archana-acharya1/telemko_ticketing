@@ -17,6 +17,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
   final _descriptionController = TextEditingController();
   final _mobileController = TextEditingController();
   final _customerController = TextEditingController();
+  final _vehicleController = TextEditingController();
 
   File? _selectedImage;
   bool _loading = false;
@@ -56,20 +57,17 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     setState(() => _loading = true);
 
     try {
-      // Fetch logged-in user's email
       final email = await SessionManager.getEmail();
-      if (email == null || email.isEmpty) {
-        throw Exception("Logged-in email not found");
-      }
+      if (email == null) throw Exception("Logged-in email not found");
 
-      // Call createIssue with named parameters
-      final issueId = await IssueService.createIssue(
-        subject: _subjectController.text,
-        description: _descriptionController.text,
-        customer: _customerController.text,
-        raisedBy: email, // use the fetched email
-        customVehicleNumber: _mobileController.text,
-      );
+      final issueId = await IssueService.createIssue({
+        "subject": _subjectController.text,
+        "description": _descriptionController.text,
+        "customer_name": _customerController.text,
+        "raised_by": email,
+        "custom_vehical_number": _vehicleController.text,
+        "custom_mobile_number": _mobileController.text,
+      });
 
       if (_selectedImage != null) {
         await IssueService.attachImage(issueId: issueId, image: _selectedImage!);
@@ -87,8 +85,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       setState(() => _loading = false);
     }
   }
-
-
 
   @override
   void dispose() {
@@ -118,14 +114,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                     style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
 
-                // Mobile (read-only)
-                TextField(
-                  controller: _mobileController,
-                  decoration: const InputDecoration(labelText: "Mobile Number"),
-                  // readOnly: true,
-                ),
-                const SizedBox(height: 16),
-
                 // Customer (read-only)
                 TextField(
                   controller: _customerController,
@@ -134,10 +122,42 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Subject
+
+                // Mobile (read-only)
                 TextField(
-                  controller: _subjectController,
-                  decoration: const InputDecoration(labelText: "Issue Subject"),
+                  controller: _mobileController,
+                  decoration: const InputDecoration(labelText: "Mobile Number"),
+                  // readOnly: true,
+                ),
+                const SizedBox(height: 16),
+
+                // Vehicle
+                TextField(
+                  controller: _vehicleController,
+                  decoration: const InputDecoration(labelText: "Vehicle Number"),
+                  // readOnly: true,
+                ),
+                const SizedBox(height: 16),
+
+
+                // Subject
+                DropdownButtonFormField<String>(
+                    value: _subjectController.text.isNotEmpty ? _subjectController.text: null,
+                  decoration: const InputDecoration(
+                    labelText: "Issue Subject",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: "Inactive", child: Text("Inactive")),
+                    DropdownMenuItem(value: "Fuel not showing", child: Text("Fuel not showing")),
+                    DropdownMenuItem(value: "Video not showing", child: Text("Video not showing")),
+                    DropdownMenuItem(value: "GPS not showing", child: Text("GPS not showing")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _subjectController.text = value ?? "";
+                    });
+                  },
                 ),
                 const SizedBox(height: 16),
 
