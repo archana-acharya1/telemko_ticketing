@@ -45,7 +45,6 @@ class _LoginScreenState extends State<LoginScreen> {
       // Login
       final userData = await AuthApi.login(identifier: identifier, password: password);
 
-      // No need to call saveUserEmail/saveUserMobile separately; login already saves
 
       // Navigate
       if (!mounted) return;
@@ -103,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       AppTextField(
                         controller: emailController,
-                        hintText: "Email / Username / Mobile",
+                        hintText: "Username",
                         prefixIcon: Icons.email,
                       ),
                       const SizedBox(height: AppPadding.md),
@@ -155,13 +154,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: AppPadding.lg),
                 TextButton(
-                  onPressed: () => Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SmsLoginScreen()),
-                  ),
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SmsLoginScreen()),
+                    );
+                  },
                   style: TextButton.styleFrom(foregroundColor: AppColors.primaryBlue),
-                  child: const Text("Continue with SMS"),
-                ),
+                  child: Text(
+                    "Login with SMS",
+                    style: AppTextStyles.bodyText1.copyWith(
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                )
               ],
             ),
           ),

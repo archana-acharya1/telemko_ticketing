@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:telemko_support/core/theme/app_theme.dart';
 import 'package:telemko_support/presentation/screens/auth/login_screen.dart';
+import 'package:telemko_support/presentation/screens/auth/sms_login_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
 
-      home: const LoginScreen(),
+      home: const SmsLoginScreen(),
     );
   }
 }

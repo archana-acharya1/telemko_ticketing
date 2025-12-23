@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:telemko_support/core/theme/app_text_styles.dart';
 import 'package:telemko_support/presentation/screens/auth/login_screen.dart';
+import 'package:telemko_support/presentation/screens/navbar/main_navbar.dart';
+
+import '../../../core/theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_constants.dart';
-import '../navbar/main_navbar.dart';
+import '../../../data/api/customer_api.dart';
+import '../../../data/api/sms_api.dart';
 
 class SmsLoginScreen extends StatefulWidget {
   const SmsLoginScreen({super.key});
@@ -20,30 +23,63 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
   bool isOtpSent = false;
   bool isLoginEnabled = false;
   bool isLoading = false;
+  bool customerNotFound = false;
 
-  void sendOtp() async {
-    if (phoneController.text.isEmpty) return;
+  String? generatedOtp;
 
-    setState(() => isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      isOtpSent = true;
-      isLoading = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('OTP sent to your mobile number')),
-    );
+  String generateOtp() {
+    return (100000 + DateTime.now().millisecondsSinceEpoch % 900000)
+        .toString();
   }
 
-  void handleLogin() async {
+  //  Verify customer and send OTP
+  Future<void> verifyCustomerAndSendOtp() async {
+    if (phoneController.text.trim().isEmpty) return;
+
+    setState(() {
+      isLoading = true;
+      customerNotFound = false;
+    });
+
+    try {
+      final exists = await CustomerApi.verifyCustomerByMobile(
+        phoneController.text.trim(),
+      );
+
+      if (!exists) {
+        setState(() {
+          customerNotFound = true;
+          isOtpSent = false;
+        });
+        return;
+      }
+
+      generatedOtp = generateOtp();
+
+      await SmsApi.sendSms(
+        mobile: phoneController.text.trim(),
+        message: "Your OTP is $generatedOtp",
+      );
+
+      setState(() {
+        isOtpSent = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("OTP sent successfully")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  // Login after OTP
+  void handleLogin() {
     if (!isLoginEnabled) return;
-
-    setState(() => isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() => isLoading = false);
 
     Navigator.pushReplacement(
       context,
@@ -54,150 +90,157 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Container(
-            // ✅ GRADIENT BACKGROUND
-            width: double.infinity,
-            height: constraints.maxHeight,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.gradientTop,
-                  AppColors.gradientBottom,
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: SafeArea(
-              child: SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Back button (on gradient)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back),
-                          color: AppColors.primaryBlue,
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const LoginScreen(),
-                              ),
-                            );
-                          },
-                        ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.gradientTop, AppColors.gradientBottom],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    color: AppColors.primaryBlue,
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+                Icon(Icons.sms_outlined,
+                    size: 80, color: AppColors.primaryBlue),
+                const SizedBox(height: 16),
+
+                Text(
+                  "Login with SMS",
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+
+                const SizedBox(height: 8),
+                Text(
+                  "We’ll send a one-time password to your phone",
+                  style: TextStyle(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 40),
+
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 16,
+                        offset: Offset(0, 8),
                       ),
-
-                      const SizedBox(height: 20),
-
-                      // Icon
-                      Icon(
-                        Icons.sms_outlined,
-                        size: 80,
-                        color: AppColors.primaryBlue,
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      AppTextField(
+                        controller: phoneController,
+                        hintText: "Mobile Number",
+                        prefixIcon: Icons.phone,
+                        keyboardType: TextInputType.phone,
                       ),
 
                       const SizedBox(height: 16),
 
-                      Text(
-                        "Login with SMS",
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      Text(
-                        "We’ll send a one-time password to your phone",
-                        style: TextStyle(color: Colors.grey[600]),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      const SizedBox(height: 40),
-
-                      // ✅ PURE WHITE CARD
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white, // 👈 IMPORTANT
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 16,
-                                offset: Offset(0, 8),
-                              ),
-                            ],
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: customerNotFound
+                            ? Text(
+                          "Customer not found. Please contact customer care.",
+                          key: const ValueKey("error"),
+                          style: AppTextStyles.bodyText1.copyWith(
+                            color: Colors.red,
+                            fontWeight: FontWeight.w600,
                           ),
-                          child: Column(
-                            children: [
-                              AppTextField(
-                                controller: phoneController,
-                                hintText: "Mobile Number",
-                                prefixIcon: Icons.phone,
-                                keyboardType: TextInputType.phone,
-                              ),
+                          textAlign: TextAlign.center,
+                        )
+                            : isOtpSent
+                            ? AppTextField(
+                          key: const ValueKey("otp"),
+                          controller: otpController,
+                          hintText: "Enter OTP",
+                          prefixIcon: Icons.lock_outline,
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) {
+                            setState(() {
+                              isLoginEnabled =
+                                  value == generatedOtp;
+                            });
+                          },
+                        )
+                            : const SizedBox.shrink(),
+                      ),
 
-                              const SizedBox(height: 16),
+                      const SizedBox(height: 24),
 
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                child: isOtpSent
-                                    ? AppTextField(
-                                  key: const ValueKey("otp"),
-                                  controller: otpController,
-                                  hintText: "Enter OTP",
-                                  prefixIcon: Icons.lock_outline,
-                                  keyboardType: TextInputType.number,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      isLoginEnabled =
-                                          value.length == 6;
-                                    });
-                                  },
-                                )
-                                    : const SizedBox.shrink(),
-                              ),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: AppButton(
+                            text: !isOtpSent ? "OK" : "Login",
+                            onPressed: () {
+                              if (isLoading) return;
 
-                              const SizedBox(height: 24),
-
-                              SizedBox(
-                                width: double.infinity,
-                                child: AppButton(
-                                  text:
-                                  !isOtpSent ? "Get OTP" : "Login",
-                                  onPressed: () {
-                                    if (isLoading) return;
-                                    !isOtpSent
-                                        ? sendOtp()
-                                        : handleLogin();
-                                  },
-                                  color: AppColors.primaryBlue,
-                                ),
-                              ),
-                            ],
+                              if (!isOtpSent) {
+                                verifyCustomerAndSendOtp();
+                              } else {
+                                handleLogin();
+                              }
+                            },
+                            color: AppColors.primaryBlue,
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 40),
+                      ),
                     ],
                   ),
                 ),
-              ),
+
+                const SizedBox(height: 40),
+
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  },
+                  child: Text(
+                    "Continue with Email",
+                    style: AppTextStyles.bodyText1.copyWith(
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
