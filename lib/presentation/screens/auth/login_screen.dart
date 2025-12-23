@@ -8,7 +8,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_constants.dart';
 import '../../../data/api/auth_api.dart';
-import '../dashboard/lib/data/local/session_manager.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,16 +23,19 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isPasswordVisible = false;
   bool isLoading = false;
 
+  //Handle login logic
   void handleLogin() async {
     setState(() => isLoading = true);
 
     final identifier = emailController.text.trim();
     final password = passwordController.text;
 
-    print("Attempting login with identifier: $identifier");
-    debugPrint("Password length: ${password.length}");
+    // Logs: Starting login attempt
+    print("Login attempt started with identifier: $identifier");
+    print("Password length: ${password.length}");
 
     if (identifier.isEmpty || password.isEmpty) {
+      print("Login failed: Identifier or password empty");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter username/email/mobile and password")),
       );
@@ -42,17 +44,22 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      // Login
-      final userData = await AuthApi.login(identifier: identifier, password: password);
+      print("Calling Auth API for login...");
+      await AuthApi.login(identifier: identifier, password: password);
+
+      print("Login successful, session saved in SessionManager");
 
 
-      // Navigate
       if (!mounted) return;
+
+      print("Login successful for identifier: $identifier, navigating to MainNavbar");
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainNavbar()),
       );
     } catch (e) {
+      print("Login failed: Error during Auth API call: $e");
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
@@ -61,7 +68,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) setState(() => isLoading = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            print("User clicked Forgot Password"); // Log action
+                          },
                           style: TextButton.styleFrom(foregroundColor: AppColors.primaryBlue),
                           child: const Text("Forgot Password?"),
                         ),
@@ -140,10 +148,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           const Text("Don’t have an account? "),
                           GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                            ),
+                            onTap: () {
+                              print("Navigating to RegisterScreen"); // Log navigation
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                              );
+                            },
                             child: Text("Register now",
                                 style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w600)),
                           ),
@@ -155,6 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: AppPadding.lg),
                 TextButton(
                   onPressed: () {
+                    print("Navigating to SMS Login screen"); // Log navigation
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (_) => const SmsLoginScreen()),

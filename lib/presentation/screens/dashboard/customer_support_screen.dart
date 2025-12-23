@@ -12,13 +12,18 @@ class CustomerSupportScreen extends StatelessWidget {
   final String facebookPageId = "telemko";
 
   Future<void> _callNumber(String number) async {
+    print("[Customer Support] Call customer tapped: $number");
     final Uri url = Uri.parse("tel:$number");
     if (await canLaunchUrl(url)) {
+      print("[Customer Support] Launching phone dialer");
       await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      print("[Customer Support] Cannot launch phone dialer");
     }
   }
 
   Future<void> _openWhatsApp(BuildContext context, String number) async {
+    print("[CustomerSupport] WhatsApp support tapped");
     // removes any non-digit characters like + or -
     final phone = number.replaceAll(RegExp(r'[^0-9]'), '');
 
@@ -28,8 +33,10 @@ class CustomerSupportScreen extends StatelessWidget {
     final Uri url = Uri.parse("https://wa.me/$phone?text=$message");
 
     if (await canLaunchUrl(url)) {
+      print("[CustomerSupport] Launching WhatsApp");
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
+      print("[CustomerSupport] WhatsApp not available");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Could not open WhatsApp")),
       );
@@ -38,14 +45,19 @@ class CustomerSupportScreen extends StatelessWidget {
 
 
   Future<void> _openFacebookChat(String pageId) async {
+    print("[CustomerSupport] Facebook Messenger tapped");
     final Uri url = Uri.parse("https://m.me/$pageId");
     if (await canLaunchUrl(url)) {
+      print("[CustomerSupport] Launching Facebook");
       await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      print("[CustomerSupport] Facebook Messenger not available");
     }
   }
 
 
   Future<void> openEmail(BuildContext context) async {
+    print("[CustomerSupport] Email support tapped");
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: 'info@telemko.com',
@@ -56,12 +68,16 @@ class CustomerSupportScreen extends StatelessWidget {
     );
 
     if (await canLaunchUrl(emailUri)) {
+      print("[CustomerSupport] Launching Email app");
       await launchUrl(emailUri, mode: LaunchMode.externalApplication);
+    } else{
+      print("[Customer Support] Email app not available");
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    print("[CustomerSupport] Screen Loaded");
     return Scaffold(
       appBar: AppBar(
         title: Text("Customer Support", style: AppTextStyles.headline2),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:telemko_support/core/theme/app_text_styles.dart';
 import 'package:telemko_support/presentation/screens/auth/login_screen.dart';
 import 'package:telemko_support/presentation/screens/navbar/main_navbar.dart';
+import 'package:telemko_support/presentation/screens/auth/register_screen.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/app_button.dart';
@@ -28,13 +29,22 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
   String? generatedOtp;
 
   String generateOtp() {
-    return (100000 + DateTime.now().millisecondsSinceEpoch % 900000)
+    final otp = (100000 + DateTime.now().millisecondsSinceEpoch % 900000)
         .toString();
+    print("[SMS Login] OTP generated: $otp");
+    return otp;
   }
 
-  //  Verify customer and send OTP
+  //Verify customer and send OTP
   Future<void> verifyCustomerAndSendOtp() async {
-    if (phoneController.text.trim().isEmpty) return;
+    final mobile = phoneController.text.trim();
+
+    if (mobile.isEmpty) {
+      print("[SMS Login] Mobile number is empty, cannot proceed");
+      return;
+    }
+
+    print("[SMS Login] Verifying customer for mobile: $mobile");
 
     setState(() {
       isLoading = true;
@@ -42,11 +52,11 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
     });
 
     try {
-      final exists = await CustomerApi.verifyCustomerByMobile(
-        phoneController.text.trim(),
-      );
+      final exists = await CustomerApi.verifyCustomerByMobile(mobile);
+      print("[SMS Login] Customer exists: $exists");
 
       if (!exists) {
+        print("[SMS Login] Customer NOT found for mobile: $mobile");
         setState(() {
           customerNotFound = true;
           isOtpSent = false;
@@ -57,9 +67,10 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
       generatedOtp = generateOtp();
 
       await SmsApi.sendSms(
-        mobile: phoneController.text.trim(),
+        mobile: mobile,
         message: "Your OTP is $generatedOtp",
       );
+      print("[SMS Login] OTP sent successfully to $mobile");
 
       setState(() {
         isOtpSent = true;
@@ -69,6 +80,8 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
         const SnackBar(content: Text("OTP sent successfully")),
       );
     } catch (e) {
+      print("[SMS Login] Error during OTP flow: $e");
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
       );
@@ -79,8 +92,12 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
 
   // Login after OTP
   void handleLogin() {
-    if (!isLoginEnabled) return;
+    if (!isLoginEnabled) {
+      print("[SMS Login] OTP entered is invalid, login not allowed");
+      return;
+    }
 
+    print("[SMS Login] OTP verified successfully, logging in");
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const MainNavbar()),
@@ -111,6 +128,7 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
                     icon: const Icon(Icons.arrow_back),
                     color: AppColors.primaryBlue,
                     onPressed: () {
+                      print("[SMS Login] Navigating back to LoginScreen");
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -168,14 +186,39 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
                         child: customerNotFound
-                            ? Text(
-                          "Customer not found. Please contact customer care.",
-                          key: const ValueKey("error"),
-                          style: AppTextStyles.bodyText1.copyWith(
-                            color: Colors.red,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          textAlign: TextAlign.center,
+                            ? Column(
+                          key: const ValueKey("not_registered"),
+                          children: [
+                            Text(
+                              "You are not registered.",
+                              style: AppTextStyles.bodyText1.copyWith(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: () {
+                                print(
+                                    "[SMS Login] Clicked 'Sign up', navigating to RegisterScreen");
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                    const RegisterScreen(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                "Click here to Sign up",
+                                style: AppTextStyles.bodyText1.copyWith(
+                                  color: AppColors.primaryBlue,
+                                  fontWeight: FontWeight.w700,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
                         )
                             : isOtpSent
                             ? AppTextField(
@@ -186,9 +229,10 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
                           keyboardType: TextInputType.number,
                           onChanged: (value) {
                             setState(() {
-                              isLoginEnabled =
-                                  value == generatedOtp;
+                              isLoginEnabled = value == generatedOtp;
                             });
+                            print(
+                                "[SMS Login] OTP input changed, isLoginEnabled: $isLoginEnabled");
                           },
                         )
                             : const SizedBox.shrink(),
@@ -198,23 +242,19 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
 
                       SizedBox(
                         width: double.infinity,
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: AppButton(
-                            text: !isOtpSent ? "OK" : "Login",
-                            onPressed: () {
-                              if (isLoading) return;
+                        child: AppButton(
+                          text: !isOtpSent ? "OK" : "Login",
+                          onPressed: () {
+                            if (isLoading) return;
 
-                              if (!isOtpSent) {
-                                verifyCustomerAndSendOtp();
-                              } else {
-                                handleLogin();
-                              }
-                            },
-                            color: AppColors.primaryBlue,
-                          ),
+                            if (!isOtpSent) {
+                              verifyCustomerAndSendOtp();
+                            } else {
+                              handleLogin();
+                            }
+                          },
+                          color: AppColors.primaryBlue,
                         ),
-
                       ),
                     ],
                   ),
@@ -224,6 +264,7 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
 
                 TextButton(
                   onPressed: () {
+                    print("[SMS Login] Navigating to LoginScreen for email login");
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (_) => const LoginScreen()),

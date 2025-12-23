@@ -29,25 +29,43 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
   }
 
   Future<void> _initializeUser() async {
-    final email = await SessionManager.getEmail();
-    if (email != null && email.isNotEmpty) {
-      final mobile = await CustomerService.fetchMobileByEmail(email);
-      final customer = await CustomerService.fetchCustomerByEmail(email);
-      setState(() {
-        _mobileController.text = mobile ?? "";
-        _customerController.text = customer ?? "";
-      });
+    try {
+      final email = await SessionManager.getEmail();
+      debugPrint("[TicketForm] Session email: $email");
+
+      if (email != null && email.isNotEmpty) {
+        final mobile = await CustomerService.fetchMobileByEmail(email);
+        final customer = await CustomerService.fetchCustomerByEmail(email);
+        debugPrint("[TicketForm] Fetched customer: $customer, mobile: $mobile");
+
+        setState(() {
+          _mobileController.text = mobile ?? "";
+          _customerController.text = customer ?? "";
+        });
+      }
+    } catch (e) {
+      debugPrint("[TicketForm] Error initializing user: $e");
     }
   }
 
   Future<void> pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) setState(() => _selectedImage = File(picked.path));
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked != null) {
+        debugPrint("[TicketForm] Image selected: ${picked.path}");
+        setState(() => _selectedImage = File(picked.path));
+      } else {
+        debugPrint("[TicketForm] No image selected");
+      }
+    } catch (e) {
+      debugPrint("[TicketForm] Error picking image: $e");
+    }
   }
 
   Future<void> submitTicket() async {
     if (_subjectController.text.isEmpty || _descriptionController.text.isEmpty) {
+      debugPrint("[TicketForm] Subject or description is empty");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Subject and description are required")),
       );
@@ -55,10 +73,12 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     }
 
     setState(() => _loading = true);
+    debugPrint("[TicketForm] Submitting ticket...");
 
     try {
       final email = await SessionManager.getEmail();
       if (email == null) throw Exception("Logged-in email not found");
+      debugPrint("[TicketForm] Ticket raised by: $email");
 
       final issueId = await IssueService.createIssue({
         "subject": _subjectController.text,
@@ -68,16 +88,20 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         "custom_vehical_number": _vehicleController.text,
         "custom_mobile_number": _mobileController.text,
       });
+      debugPrint("[TicketForm] Ticket created with ID: $issueId");
 
       if (_selectedImage != null) {
         await IssueService.attachImage(issueId: issueId, image: _selectedImage!);
+        debugPrint("[TicketForm] Image attached to ticket $issueId");
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Ticket created successfully")),
       );
+      debugPrint("[TicketForm] Ticket submission completed");
       Navigator.pop(context);
     } catch (e) {
+      debugPrint("[TicketForm] Error creating ticket: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
       );
@@ -92,6 +116,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     _descriptionController.dispose();
     _mobileController.dispose();
     _customerController.dispose();
+    _vehicleController.dispose();
     super.dispose();
   }
 
@@ -110,24 +135,23 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Create Support Ticket",
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  "Create Support Ticket",
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 20),
 
                 // Customer (read-only)
                 TextField(
                   controller: _customerController,
                   decoration: const InputDecoration(labelText: "Customer Name"),
-                  // readOnly: true,
                 ),
                 const SizedBox(height: 16),
-
 
                 // Mobile (read-only)
                 TextField(
                   controller: _mobileController,
                   decoration: const InputDecoration(labelText: "Mobile Number"),
-                  // readOnly: true,
                 ),
                 const SizedBox(height: 16),
 
@@ -135,14 +159,12 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                 TextField(
                   controller: _vehicleController,
                   decoration: const InputDecoration(labelText: "Vehicle Number"),
-                  // readOnly: true,
                 ),
                 const SizedBox(height: 16),
 
-
-                // Subject
+                // Subject Dropdown
                 DropdownButtonFormField<String>(
-                    value: _subjectController.text.isNotEmpty ? _subjectController.text: null,
+                  value: _subjectController.text.isNotEmpty ? _subjectController.text : null,
                   decoration: const InputDecoration(
                     labelText: "Issue Subject",
                     border: OutlineInputBorder(),
@@ -156,6 +178,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                   onChanged: (value) {
                     setState(() {
                       _subjectController.text = value ?? "";
+                      debugPrint("[TicketForm] Subject selected: ${_subjectController.text}");
                     });
                   },
                 ),

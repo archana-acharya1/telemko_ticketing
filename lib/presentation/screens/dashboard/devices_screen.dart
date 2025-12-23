@@ -5,6 +5,7 @@ class DevicesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("[DevicesScreen] Screen loaded");
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 

@@ -19,6 +19,8 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("[Dashboard] Dashboard screen loaded");
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -33,6 +35,8 @@ class DashboardScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
+              print("[Dashboard] Logout button tapped");
+
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const LogoutScreen()),
@@ -57,10 +61,14 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 // CREATE SUPPORT TICKET
                 GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TicketFormScreen()),
-                  ),
+                  onTap: () {
+          print("[Dashboard] Create Support Ticket tapped");
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TicketFormScreen()),
+            );
+            },
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -154,7 +162,11 @@ class DashboardScreen extends StatelessWidget {
       title: title,
       icon: icon,
       textColor: Colors.black87,
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen)),
+      onTap: () {
+        print("[Dashboard] Quick link tapped: $title");
+      Navigator.push(context, MaterialPageRoute(builder: (_) => screen)
+    );
+  },
     );
   }
 }

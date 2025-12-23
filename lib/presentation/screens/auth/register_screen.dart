@@ -25,6 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? errorMessage;
 
   void handleRegister() async {
+    print("[RegisterScreen] Register button clicked");
     setState(() {
       errorMessage = null;
     });
@@ -34,7 +35,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = createPasswordController.text;
     final confirmPassword = confirmPasswordController.text;
 
+    print("[RegisterScreen] Name: $name, Email: $email");
+
     if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      print("[RegisterScreen] Validation failed: Empty fields");
       setState(() {
         errorMessage = "All fields are required";
       });
@@ -42,16 +46,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (password != confirmPassword) {
+      print("[RegisterScreen] Validation failed: Passwords do not match");
       setState(() {
         errorMessage = "Passwords do not match";
       });
       return;
     }
 
+    print("[RegisterScreen] Registration started");
     //loading simulation for delay
     setState(() => isLoading = true);
     await Future.delayed(const Duration(seconds: 1));
     setState(() => isLoading = false);
+    print("[RegisterScreen] Registration completed, navigating to LoginScreen");
 
     // Navigate to login, will change later
     Navigator.pushReplacement(
@@ -156,6 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             setState(() {
                               isCreatePasswordVisible = !isCreatePasswordVisible;
                             });
+                            print("[RegisterScreen] Toggled create password visibility");
                           },
                         ),
                       ),
@@ -178,6 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             setState(() {
                               isConfirmPasswordVisible = !isConfirmPasswordVisible;
                             });
+                            print("[RegisterScreen] Toggled confirm password visibility");
                           },
                         ),
                       ),
@@ -193,7 +202,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             fontSize: 14,
                           ),
                         ),
-                        const SizedBox(height: AppPadding.md),
+                        const SizedBox(height: AppPadding.md)
                       ],
 
                       // Register button
@@ -215,6 +224,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           const Text("Already have an account? "),
                           GestureDetector(
                             onTap: () {
+                              print("[RegisterScreen] Navigating back to LoginScreen");
                               Navigator.pop(context);
                             },
                             child: Text(

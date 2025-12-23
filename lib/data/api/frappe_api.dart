@@ -14,34 +14,61 @@ class FrappeApi {
     "Content-Type": "application/json",
   };
 
+  // POST request
   static Future<Map<String, dynamic>> post(
       String endpoint, Map<String, dynamic> body) async {
+    print("[FrappeApi] POST request to $endpoint with body: $body");
     final uri = Uri.parse("$baseUrl$endpoint");
-    final res =
-    await http.post(uri, headers: headers, body: jsonEncode(body));
 
-    if (res.statusCode == 200) {
-      return jsonDecode(res.body);
+    try {
+      final res = await http.post(uri, headers: headers, body: jsonEncode(body));
+      print("[FrappeApi] Response status: ${res.statusCode}");
+
+      if (res.statusCode == 200) {
+        final decoded = jsonDecode(res.body);
+        print("[FrappeApi] Response body: $decoded");
+        return decoded;
+      }
+
+      print("[FrappeApi] POST failed: ${res.body}");
+      throw Exception("POST failed: ${res.body}");
+    } catch (e) {
+      print("[FrappeApi] Error during POST request: $e");
+      rethrow;
     }
-    throw Exception("POST failed: ${res.body}");
   }
 
+  // GET request
   static Future<Map<String, dynamic>> get(String endpoint) async {
+    print("[FrappeApi] GET request to $endpoint");
     final uri = Uri.parse("$baseUrl$endpoint");
-    final res = await http.get(uri, headers: headers);
 
-    if (res.statusCode == 200) {
-      return jsonDecode(res.body);
+    try {
+      final res = await http.get(uri, headers: headers);
+      print("[FrappeApi] Response status: ${res.statusCode}");
+
+      if (res.statusCode == 200) {
+        final decoded = jsonDecode(res.body);
+        print("[FrappeApi] Response body: $decoded");
+        return decoded;
+      }
+
+      print("[FrappeApi] GET failed: ${res.body}");
+      throw Exception("GET failed: ${res.body}");
+    } catch (e) {
+      print("[FrappeApi] Error during GET request: $e");
+      rethrow;
     }
-    throw Exception("GET failed: ${res.body}");
   }
 
+  // Get list of documents
   static Future<List<dynamic>> getList({
     required String doctype,
     List<String>? fields,
     List<dynamic>? filters,
     int limit = 50,
   }) async {
+    print("[FrappeApi] getList called for doctype: $doctype, filters: $filters");
     final uri = Uri.parse("$baseUrl/api/method/frappe.client.get_list");
 
     final body = {
@@ -51,24 +78,34 @@ class FrappeApi {
       "limit": limit,
     };
 
-    final res =
-    await http.post(uri, headers: headers, body: jsonEncode(body));
+    try {
+      final res = await http.post(uri, headers: headers, body: jsonEncode(body));
+      print("[FrappeApi] Response status: ${res.statusCode}");
 
-    if (res.statusCode == 200) {
-      return jsonDecode(res.body)["message"];
+      if (res.statusCode == 200) {
+        final message = jsonDecode(res.body)["message"];
+        print("[FrappeApi] getList response: $message");
+        return message;
+      }
+
+      print("[FrappeApi] getList failed: ${res.body}");
+      throw Exception("getList failed: ${res.body}");
+    } catch (e) {
+      print("[FrappeApi] Error during getList: $e");
+      rethrow;
     }
-    throw Exception("getList failed: ${res.body}");
   }
 
-  /// ✅ CORRECT ERPNext attachment upload
+  // Upload file
   static Future<String> uploadFile({
     required File file,
     required String doctype,
     required String docname,
     bool isPrivate = false,
   }) async {
-    final uri = Uri.parse("$baseUrl/api/method/upload_file");
+    print("[FrappeApi] Uploading file ${file.path} to $doctype/$docname");
 
+    final uri = Uri.parse("$baseUrl/api/method/upload_file");
     final request = http.MultipartRequest("POST", uri);
     request.headers['Authorization'] = 'token $apiToken';
 
@@ -76,8 +113,7 @@ class FrappeApi {
     request.fields['attached_to_name'] = docname;
     request.fields['is_private'] = isPrivate ? '1' : '0';
 
-    final mimeType =
-        lookupMimeType(file.path) ?? 'application/octet-stream';
+    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
     final parts = mimeType.split('/');
 
     request.files.add(
@@ -89,14 +125,24 @@ class FrappeApi {
       ),
     );
 
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
+    try {
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+      print("[FrappeApi] Upload response status: ${response.statusCode}");
 
-    if (response.statusCode != 200) {
-      throw Exception("Upload failed: ${response.body}");
+      if (response.statusCode != 200) {
+        print("[FrappeApi] Upload failed: ${response.body}");
+        throw Exception("Upload failed: ${response.body}");
+      }
+
+      final body = jsonDecode(response.body);
+      final fileUrl = body["message"]["file_url"];
+      print("[FrappeApi] File uploaded successfully: $fileUrl");
+
+      return fileUrl;
+    } catch (e) {
+      print("[FrappeApi] Error during file upload: $e");
+      rethrow;
     }
-
-    final body = jsonDecode(response.body);
-    return body["message"]["file_url"];
   }
 }

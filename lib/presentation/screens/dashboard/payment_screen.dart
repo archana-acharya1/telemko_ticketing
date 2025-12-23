@@ -17,13 +17,19 @@ class PaymentScreen extends StatelessWidget {
   static const String qrAssetPath = "assets/images/company_qr.png";
 
   Future<void> _copy(BuildContext context, String label, String value) async {
+    print("[PaymentScreen] Copy requested → $label");
+
     await Clipboard.setData(ClipboardData(text: value));
+    print("[PaymentScreen] Copied successfully → $label");
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("$label copied")),
     );
   }
 
   Future<void> _saveQrToGallery(BuildContext context) async {
+    print("[PaymentScreen] Save QR initiated");
+
     try {
       // Load QR from assets
       final byteData = await rootBundle.load(qrAssetPath);
@@ -36,20 +42,22 @@ class PaymentScreen extends StatelessWidget {
       );
 
       await file.writeAsBytes(bytes);
+      print("[PaymentScreen] QR saved temporarily at ${file.path}");
 
       // Open Android share sheet
       await Share.shareXFiles(
         [XFile(file.path)],
         text: "Telemko Payment QR",
       );
+      print("[PaymentScreen] Share sheet opened successfully");
+
     } catch (e) {
+      print("[PaymentScreen] QR save/share failed → $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to save QR: $e")),
       );
     }
   }
-
-
 
   Widget _copyTile(BuildContext context,
       {required String label, required String value}) {
@@ -69,6 +77,7 @@ class PaymentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("[PaymentScreen] Screen loaded");
     final theme = Theme.of(context);
 
     return Scaffold(

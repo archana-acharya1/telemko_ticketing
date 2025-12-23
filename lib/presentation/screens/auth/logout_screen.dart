@@ -8,10 +8,15 @@ import '../../../core/theme/app_constants.dart';
 class LogoutScreen extends StatelessWidget {
   const LogoutScreen({super.key});
 
+  //Perform logout and navigate to LoginScreen
   void performLogout(BuildContext context) {
+    print("Logout initiated by user");
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) {
+        print("Navigating to LoginScreen after logout");
+        return const LoginScreen();
+      }),
           (route) => false,
     );
   }
@@ -60,7 +65,10 @@ class LogoutScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  print("Logout canceled by user");
+                  Navigator.pop(context);
+                },
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: AppColors.primaryBlue),
                   padding: const EdgeInsets.symmetric(
