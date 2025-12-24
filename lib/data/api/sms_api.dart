@@ -3,43 +3,31 @@ import 'package:http/http.dart' as http;
 
 class SmsApi {
   static const String baseUrl = "http://erp.telemko.com";
+  static String? sessionCookie;
 
-  static Future<void> sendSms({
-    required String mobile,
-    required String message,
-  }) async {
-    print("[SmsApi] Sending SMS to: $mobile");
-    print("[SmsApi] Message: $message");
+  static Future<void> sendOtp({required String mobile}) async {
+    print("[SmsApi] Sending OTP to $mobile...");
+    final url = Uri.parse("$baseUrl/api/method/telemko_support.api.send_otp.send_otp");
 
-    final url = Uri.parse(
-      "$baseUrl/api/method/telemko_support.api.send_sms.send_sms_api",
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"mobile_no": mobile}),
     );
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "token 2259d1e51dadce0:e4b7dfc664256d8",
-        },
-        body: jsonEncode({
-          "receiver_list": mobile,
-          "message": message,
-        }),
-      );
+    print("[SmsApi] Status: ${response.statusCode}");
+    print("[SmsApi] Body: ${response.body}");
 
-      print("[SmsApi] Response status: ${response.statusCode}");
-      print("[SmsApi] Response body: ${response.body}");
-
-      if (response.statusCode != 200) {
-        print("[SmsApi] Failed to send SMS");
-        throw Exception("Failed to send SMS");
-      }
-
-      print("[SmsApi] SMS sent successfully to $mobile");
-    } catch (e) {
-      print("[SmsApi] Error sending SMS: $e");
-      rethrow;
+    if (response.statusCode != 200) {
+      throw Exception("Failed to send OTP");
     }
+
+    final rawCookie = response.headers['set-cookie'];
+    if (rawCookie == null) {
+      throw Exception("No session cookie returned");
+    }
+
+    sessionCookie = rawCookie;
+    print("[SmsApi] Session cookie saved: $sessionCookie");
   }
 }
