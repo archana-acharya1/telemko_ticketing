@@ -27,8 +27,8 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
 
-      home: const SmsLoginScreen(),
-      // home: const LoginScreen(),
+      // home: const SmsLoginScreen(),
+      home: const LoginScreen(),
     );
   }
 }

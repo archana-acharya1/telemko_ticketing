@@ -31,18 +31,27 @@ class CustomerService {
       
       // Standard Frappe login returns SID in Set-Cookie header
       // Try to extract from Set-Cookie header first (this is the standard way)
-      final setCookie = response.headers["set-cookie"];
+      // HTTP headers are case-insensitive, but http package stores them lowercase
+      final setCookie = response.headers["set-cookie"] ?? response.headers["Set-Cookie"];
       print("[CustomerService] Set-Cookie header: $setCookie");
+      print("[CustomerService] All response headers: ${response.headers}");
       
       if (setCookie != null && setCookie.isNotEmpty) {
-        // Cookie header format: "sid=abc123; Path=/; HttpOnly" or multiple cookies
-        final cookies = setCookie.split(',').map((c) => c.trim()).toList();
-        for (final cookie in cookies) {
-          final match = RegExp(r"sid=([^;\s]+)").firstMatch(cookie);
+        // Cookie header format: "sid=abc123; Path=/; HttpOnly" 
+        // Handle multiple cookies separated by comma or semicolon
+        // First try splitting by comma (multiple Set-Cookie headers combined)
+        final cookieStrings = setCookie.split(',');
+        for (final cookieStr in cookieStrings) {
+          final trimmed = cookieStr.trim();
+          // Look for sid=value pattern (value can contain alphanumeric, -, _, etc)
+          final match = RegExp(r"sid=([^;\s,]+)").firstMatch(trimmed);
           if (match != null) {
-            sid = match.group(1);
-            print("[CustomerService] SID extracted from cookie: $sid");
-            break;
+            final extractedSid = match.group(1)?.trim();
+            if (extractedSid != null && extractedSid.isNotEmpty && extractedSid != "Logged In") {
+              sid = extractedSid;
+              print("[CustomerService] SID extracted from cookie: $sid");
+              break;
+            }
           }
         }
       }
@@ -76,7 +85,7 @@ class CustomerService {
       }
 
       // If we have SID from cookie but no user details in body, save session anyway
-      if (sid != null && sid.isNotEmpty) {
+      if (sid != null && sid.isNotEmpty && sid != "Logged In") {
         await SessionManager.saveCustomerSession(
           customerName: usr, // Use username as fallback
           mobileNo: "",
@@ -85,10 +94,10 @@ class CustomerService {
           loginType: "normal",
         );
         
-        print("[CustomerService] Username/password login successful (SID from cookie)");
+        print("[CustomerService] Username/password login successful (SID from cookie): $sid");
         return {"sid": sid, "message": "Logged In"};
       } else {
-        print("[CustomerService] Login failed: No SID found in response");
+        print("[CustomerService] Login failed: No valid SID found in response. SID value: $sid");
       }
     } else {
       print("[CustomerService] Login failed with status: ${response.statusCode}");
@@ -152,23 +161,27 @@ class CustomerService {
 
       // If SID not in body, try to extract from Set-Cookie header
       if (sid == null || sid.isEmpty) {
-        final setCookie = response.headers["set-cookie"];
+        final setCookie = response.headers["set-cookie"] ?? response.headers["Set-Cookie"];
         print("[CustomerService] Set-Cookie header: $setCookie");
         
         if (setCookie != null && setCookie.isNotEmpty) {
-          final cookies = setCookie.split(',').map((c) => c.trim()).toList();
-          for (final cookie in cookies) {
-            final match = RegExp(r"sid=([^;\s]+)").firstMatch(cookie);
+          final cookieStrings = setCookie.split(',');
+          for (final cookieStr in cookieStrings) {
+            final trimmed = cookieStr.trim();
+            final match = RegExp(r"sid=([^;\s,]+)").firstMatch(trimmed);
             if (match != null) {
-              sid = match.group(1);
-              print("[CustomerService] SID extracted from cookie: $sid");
-              break;
+              final extractedSid = match.group(1)?.trim();
+              if (extractedSid != null && extractedSid.isNotEmpty && extractedSid != "Logged In") {
+                sid = extractedSid;
+                print("[CustomerService] SID extracted from cookie: $sid");
+                break;
+              }
             }
           }
         }
       }
 
-      if (sid != null && sid.isNotEmpty) {
+      if (sid != null && sid.isNotEmpty && sid != "Logged In") {
         // Parse response body to get user details
         Map<String, dynamic> userDetails = {};
         try {
@@ -193,7 +206,7 @@ class CustomerService {
         print("[CustomerService] OTP login successful. SID: $sid");
         return userDetails.isNotEmpty ? userDetails : {"sid": sid};
       } else {
-        print("[CustomerService] OTP login failed: No SID found in response");
+        print("[CustomerService] OTP login failed: No valid SID found in response. SID value: $sid");
       }
     } else {
       print("[CustomerService] OTP login failed with status: ${response.statusCode}");
