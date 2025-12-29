@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../services/issue_service.dart';
+
+import '../../../data/api/api_client.dart';
 import '../dashboard/lib/data/local/session_manager.dart';
 
 class TicketHistoryScreen extends StatefulWidget {
@@ -11,66 +12,62 @@ class TicketHistoryScreen extends StatefulWidget {
 
 class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
   List<dynamic> tickets = [];
-  bool _loading = true;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchTickets();
+    fetchTickets();
   }
 
-  Future<void> _fetchTickets() async {
-    setState(() => _loading = true);
+  Future<void> fetchTickets() async {
+    setState(() => isLoading = true);
     try {
-      final email = await SessionManager.getEmail();
-      if (email != null) {
-        tickets = await IssueService.fetchIssuesByEmail(email);
-
-        tickets.sort((a, b) {
-          final dateA = DateTime.tryParse(a["opening_date"] ?? "") ?? DateTime(2000);
-          final dateB = DateTime.tryParse(b["opening_date"] ?? "") ?? DateTime(2000);
-          return dateB.compareTo(dateA); // Newest first
+      // Make sure session is loaded
+      final sid = await SessionManager.getSid();
+      print("[TicketHistoryScreen] Fetching tickets with SID: $sid");
+      
+      if (sid == null || sid.isEmpty) {
+        print("[TicketHistoryScreen] ERROR: No SID found. User not logged in.");
+        setState(() {
+          tickets = [];
         });
+        return;
       }
+
+      // Fetch tickets using ApiClient
+      print("[TicketHistoryScreen] Calling get_tickets API...");
+      final res = await ApiClient.get("/api/method/telemko_support.api.get_tickets");
+      print("[TicketHistoryScreen] get_tickets response: $res");
+      
+      setState(() {
+        tickets = res["message"] ?? [];
+      });
+      print("[TicketHistoryScreen] Loaded ${tickets.length} tickets");
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching tickets: $e")),
-      );
+      print("[TicketHistoryScreen] ERROR fetching tickets: $e");
+      print("[TicketHistoryScreen] Error type: ${e.runtimeType}");
+      setState(() {
+        tickets = [];
+      });
     } finally {
-      setState(() => _loading = false);
+      setState(() => isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("My Tickets")),
-      body: _loading
+      appBar: AppBar(title: const Text("Tickets")),
+      body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : tickets.isEmpty
-          ? const Center(child: Text("No tickets found"))
           : ListView.builder(
-        padding: const EdgeInsets.all(16),
         itemCount: tickets.length,
         itemBuilder: (context, index) {
-          final t = tickets[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ListTile(
-              title: Text(t["subject"] ?? ""),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Customer: ${t["customer"] ?? ""}"),
-                  Text("Mobile: ${t["custom_mobile_number"] ?? ""}"),
-                  Text("Vehicle: ${t["custom_vehical_number"] ?? ""}"),
-                  Text("Status: ${t["status"] ?? ""}"),
-                ],
-              ),
-              trailing: Text(t["opening_date"]?.toString().split(" ")[0] ?? ""),
-            ),
+          final ticket = tickets[index];
+          return ListTile(
+            title: Text(ticket["title"] ?? "No title"),
+            subtitle: Text(ticket["description"] ?? "No description"),
           );
         },
       ),

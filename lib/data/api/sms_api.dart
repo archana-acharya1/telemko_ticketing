@@ -2,32 +2,32 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class SmsApi {
-  static const String baseUrl = "http://erp.telemko.com";
-  static String? sessionCookie;
+  static const baseUrl = "http://erp.telemko.com";
 
-  static Future<void> sendOtp({required String mobile}) async {
-    print("[SmsApi] Sending OTP to $mobile...");
-    final url = Uri.parse("$baseUrl/api/method/telemko_support.api.send_otp.send_otp");
-
+  static Future<bool> sendOtp({required String mobileNo}) async {
     final response = await http.post(
-      url,
+      Uri.parse("$baseUrl/api/method/telemko_support.api.send_otp.send_otp"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"mobile_no": mobile}),
+      body: jsonEncode({"mobile_no": mobileNo}),
+    );
+    return response.statusCode == 200;
+  }
+
+  static Future<Map<String, dynamic>?> verifyOtp({
+    required String mobileNo,
+    required String otp,
+  }) async {
+    final response = await http.post(
+      Uri.parse(
+          "$baseUrl/api/method/telemko_support.api.custom_mobile_login.mobile_login"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"mobile_no": mobileNo, "otp": otp}),
     );
 
-    print("[SmsApi] Status: ${response.statusCode}");
-    print("[SmsApi] Body: ${response.body}");
-
-    if (response.statusCode != 200) {
-      throw Exception("Failed to send OTP");
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data["message"];
     }
-
-    final rawCookie = response.headers['set-cookie'];
-    if (rawCookie == null) {
-      throw Exception("No session cookie returned");
-    }
-
-    sessionCookie = rawCookie;
-    print("[SmsApi] Session cookie saved: $sessionCookie");
+    return null;
   }
 }

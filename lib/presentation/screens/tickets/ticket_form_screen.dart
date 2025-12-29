@@ -1,9 +1,11 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import '../../../services/issue_service.dart';
-import '../../../services/customer_service.dart';
+import 'package:http/http.dart' as http;
+import '../../../core/theme/app_colors.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_text_field.dart';
 import '../dashboard/lib/data/local/session_manager.dart';
+import 'ticket_history_screen.dart';
 
 class TicketFormScreen extends StatefulWidget {
   const TicketFormScreen({super.key});
@@ -13,210 +15,107 @@ class TicketFormScreen extends StatefulWidget {
 }
 
 class _TicketFormScreenState extends State<TicketFormScreen> {
-  final _subjectController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _mobileController = TextEditingController();
-  final _customerController = TextEditingController();
-  final _vehicleController = TextEditingController();
-
-  File? _selectedImage;
-  bool _loading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeUser();
-  }
-
-  Future<void> _initializeUser() async {
-    try {
-      final email = await SessionManager.getEmail();
-      debugPrint("[TicketForm] Session email: $email");
-
-      if (email != null && email.isNotEmpty) {
-        final mobile = await CustomerService.fetchMobileByEmail(email);
-        final customer = await CustomerService.fetchCustomerByEmail(email);
-        debugPrint("[TicketForm] Fetched customer: $customer, mobile: $mobile");
-
-        setState(() {
-          _mobileController.text = mobile ?? "";
-          _customerController.text = customer ?? "";
-        });
-      }
-    } catch (e) {
-      debugPrint("[TicketForm] Error initializing user: $e");
-    }
-  }
-
-  Future<void> pickImage() async {
-    try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(source: ImageSource.gallery);
-      if (picked != null) {
-        debugPrint("[TicketForm] Image selected: ${picked.path}");
-        setState(() => _selectedImage = File(picked.path));
-      } else {
-        debugPrint("[TicketForm] No image selected");
-      }
-    } catch (e) {
-      debugPrint("[TicketForm] Error picking image: $e");
-    }
-  }
+  final subjectController = TextEditingController();
+  final descriptionController = TextEditingController();
+  bool isLoading = false;
 
   Future<void> submitTicket() async {
-    if (_subjectController.text.isEmpty || _descriptionController.text.isEmpty) {
-      debugPrint("[TicketForm] Subject or description is empty");
+    final subject = subjectController.text.trim();
+    final description = descriptionController.text.trim();
+
+    if (subject.isEmpty || description.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Subject and description are required")),
+        const SnackBar(content: Text("Please fill all fields")),
       );
       return;
     }
 
-    setState(() => _loading = true);
-    debugPrint("[TicketForm] Submitting ticket...");
+    setState(() => isLoading = true);
 
     try {
-      final email = await SessionManager.getEmail();
-      if (email == null) throw Exception("Logged-in email not found");
-      debugPrint("[TicketForm] Ticket raised by: $email");
+      final session = await SessionManager.getCustomerSession();
+      final customerName = session?["customer_name"] ?? "";
+      final sid = session?["sid"] ?? "";
 
-      final issueId = await IssueService.createIssue({
-        "subject": _subjectController.text,
-        "description": _descriptionController.text,
-        "customer_name": _customerController.text,
-        "raised_by": email,
-        "custom_vehical_number": _vehicleController.text,
-        "custom_mobile_number": _mobileController.text,
-      });
-      debugPrint("[TicketForm] Ticket created with ID: $issueId");
-
-      if (_selectedImage != null) {
-        await IssueService.attachImage(issueId: issueId, image: _selectedImage!);
-        debugPrint("[TicketForm] Image attached to ticket $issueId");
+      if (customerName.isEmpty || sid.isEmpty) {
+        throw Exception("No session found. Please login again.");
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Ticket created successfully")),
+      final url = Uri.parse("http://erp.telemko.com/api/resource/Issue");
+
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Cookie": "sid=$sid", // ✅ Use SID here
+        },
+        body: jsonEncode({
+          "customer": customerName,
+          "subject": subject,
+          "description": description,
+        }),
       );
-      debugPrint("[TicketForm] Ticket submission completed");
-      Navigator.pop(context);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Ticket created successfully")));
+        subjectController.clear();
+        descriptionController.clear();
+
+        // Navigate to Ticket History
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const TicketHistoryScreen()),
+        );
+      } else {
+        throw Exception(
+            "Failed to create ticket. Status code: ${response.statusCode}");
+      }
     } catch (e) {
-      debugPrint("[TicketForm] Error creating ticket: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
-      setState(() => _loading = false);
+      setState(() => isLoading = false);
     }
   }
 
   @override
   void dispose() {
-    _subjectController.dispose();
-    _descriptionController.dispose();
-    _mobileController.dispose();
-    _customerController.dispose();
-    _vehicleController.dispose();
+    subjectController.dispose();
+    descriptionController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text("Create Ticket")),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Card(
-          elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Create Support Ticket",
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-
-                // Customer (read-only)
-                TextField(
-                  controller: _customerController,
-                  decoration: const InputDecoration(labelText: "Customer Name"),
-                ),
-                const SizedBox(height: 16),
-
-                // Mobile (read-only)
-                TextField(
-                  controller: _mobileController,
-                  decoration: const InputDecoration(labelText: "Mobile Number"),
-                ),
-                const SizedBox(height: 16),
-
-                // Vehicle
-                TextField(
-                  controller: _vehicleController,
-                  decoration: const InputDecoration(labelText: "Vehicle Number"),
-                ),
-                const SizedBox(height: 16),
-
-                // Subject Dropdown
-                DropdownButtonFormField<String>(
-                  value: _subjectController.text.isNotEmpty ? _subjectController.text : null,
-                  decoration: const InputDecoration(
-                    labelText: "Issue Subject",
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: "Inactive", child: Text("Inactive")),
-                    DropdownMenuItem(value: "Fuel not showing", child: Text("Fuel not showing")),
-                    DropdownMenuItem(value: "Video not showing", child: Text("Video not showing")),
-                    DropdownMenuItem(value: "GPS not showing", child: Text("GPS not showing")),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _subjectController.text = value ?? "";
-                      debugPrint("[TicketForm] Subject selected: ${_subjectController.text}");
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Description
-                TextField(
-                  controller: _descriptionController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(labelText: "Description"),
-                ),
-                const SizedBox(height: 16),
-
-                // Image upload
-                ElevatedButton.icon(
-                  onPressed: pickImage,
-                  icon: const Icon(Icons.add_a_photo),
-                  label: const Text("Upload Image"),
-                ),
-                if (_selectedImage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text("Image selected: ${_selectedImage!.path.split('/').last}"),
-                  ),
-                const SizedBox(height: 24),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : submitTicket,
-                    child: _loading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text("Submit Ticket"),
-                  ),
-                ),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            AppTextField(
+              controller: subjectController,
+              hintText: "Subject",
+              prefixIcon: Icons.subject,
             ),
-          ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: descriptionController,
+              hintText: "Description",
+              prefixIcon: Icons.description,
+              maxLines: 5,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                text: isLoading ? "Submitting..." : "Submit Ticket",
+                onPressed: isLoading ? () {} : submitTicket,
+                color: AppColors.primaryBlue,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,55 +1,41 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'sms_api.dart';
 
 class AuthApi {
-  static const String baseUrl = "http://erp.telemko.com";
+  static const loginUrl = "http://erp.telemko.com/api/method/login";
+  static const mobileLoginUrl = "http://erp.telemko.com/api/method/telemko_support.api.custom_mobile_login.mobile_login";
 
-  static Future<void> login({
-    required String identifier,
-    required String password,
+  static Future<Map<String, dynamic>?> login({
+    required String usr,
+    required String pwd,
   }) async {
-    print("[AuthApi] Starting login for: $identifier");
+    final url = Uri.parse(loginUrl);
     final response = await http.post(
-      Uri.parse("$baseUrl/api/method/login"),
-      headers: {"Content-Type": "application/x-www-form-urlencoded"},
-      body: {"usr": identifier, "pwd": password},
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"usr": usr, "pwd": pwd}),
     );
 
-    print("[AuthApi] Response status: ${response.statusCode}");
-    print("[AuthApi] Response body: ${response.body}");
-
-    if (response.statusCode != 200) {
-      throw Exception("Login failed");
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
     }
+    return null;
   }
 
-  static Future<void> mobileLogin({
-    required String mobile,
+  static Future<Map<String, dynamic>?> mobileLogin({
+    required String mobile_no,
     required String otp,
   }) async {
-    print("[AuthApi] OTP login for $mobile");
-    if (SmsApi.sessionCookie == null) {
-      print("[AuthApi] OTP session missing!");
-      throw Exception("OTP session missing");
-    }
-
+    final url = Uri.parse(mobileLoginUrl);
     final response = await http.post(
-      Uri.parse("$baseUrl/api/method/telemko_support.api.custom_mobile_login.mobile_login"),
-      headers: {
-        "Content-Type": "application/json",
-        "Cookie": SmsApi.sessionCookie!,
-      },
-      body: jsonEncode({"mobile_no": mobile, "otp": otp}),
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"mobile_no": mobile_no, "otp": otp}),
     );
 
-    print("[AuthApi] Status: ${response.statusCode}");
-    print("[AuthApi] Body: ${response.body}");
-
-    if (response.statusCode != 200) {
-      throw Exception("Mobile login failed");
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
     }
-
-    print("[AuthApi] Mobile login successful for $mobile");
+    return null;
   }
 }

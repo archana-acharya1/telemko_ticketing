@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:telemko_support/core/theme/app_text_styles.dart';
-import 'package:telemko_support/presentation/screens/auth/login_screen.dart';
-import 'package:telemko_support/presentation/screens/navbar/main_navbar.dart';
-
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_constants.dart';
+import '../../../services/customer_service.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
-import '../../../data/api/customer_api.dart';
-import '../../../data/api/sms_api.dart';
-import '../../../data/api/auth_api.dart';
+import '../dashboard/lib/data/local/session_manager.dart';
+import '../navbar/main_navbar.dart';
+import 'login_screen.dart';
 
 class SmsLoginScreen extends StatefulWidget {
   const SmsLoginScreen({super.key});
@@ -18,106 +17,61 @@ class SmsLoginScreen extends StatefulWidget {
 }
 
 class _SmsLoginScreenState extends State<SmsLoginScreen> {
-  final phoneController = TextEditingController();
+  final mobileController = TextEditingController();
   final otpController = TextEditingController();
-
-  bool isOtpSent = false;
   bool isLoading = false;
-  bool customerNotFound = false;
+  bool otpSent = false;
 
-  // STEP 1: Request OTP from backend
-  Future<void> requestOtp() async {
-    final mobile = phoneController.text.trim();
-    print("[SMS Login] Requesting OTP for mobile: $mobile");
-
+  Future<void> sendOtp() async {
+    final mobile = mobileController.text.trim();
     if (mobile.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter mobile number")),
-      );
-      print("[SMS Login] Mobile number empty, aborting OTP request");
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-      customerNotFound = false;
-    });
-
-    try {
-      print("[SMS Login] Verifying customer existence...");
-      final exists = await CustomerApi.verifyCustomerByMobile(mobile);
-      print("[SMS Login] Customer exists: $exists");
-
-      if (!exists) {
-        setState(() {
-          customerNotFound = true;
-          isOtpSent = false;
-        });
-        print("[SMS Login] Customer not found, cannot send OTP");
-        return;
-      }
-
-      print("[SMS Login] Sending OTP...");
-      await SmsApi.sendOtp(mobile: mobile);
-      print("[SMS Login] OTP sent successfully to $mobile");
-
-      setState(() => isOtpSent = true);
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("OTP sent successfully")));
-    } catch (e) {
-      print("[SMS Login] Error sending OTP: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to send OTP: $e")),
-      );
-    } finally {
-      setState(() => isLoading = false);
-      print("[SMS Login] OTP request process finished");
-    }
-  }
-
-  // STEP 2: Verify OTP + AUTO LOGIN
-  Future<void> loginWithOtp() async {
-    final mobile = phoneController.text.trim();
-    final otp = otpController.text.trim();
-    print("[SMS Login] Attempting login for $mobile with OTP: $otp");
-
-    if (otp.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter OTP")),
-      );
-      print("[SMS Login] OTP empty, aborting login");
+          .showSnackBar(const SnackBar(content: Text("Enter your mobile number")));
       return;
     }
 
     setState(() => isLoading = true);
+    final sent = await CustomerService.sendOtp(mobile);
+    setState(() => isLoading = false);
 
-    try {
-      await AuthApi.mobileLogin(
-        mobile: mobile,
-        otp: otp,
-      );
+    if (sent) {
+      setState(() => otpSent = true);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("OTP sent successfully")));
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Failed to send OTP")));
+    }
+  }
 
-      if (!mounted) return;
-      print("[SMS Login] Mobile login successful for $mobile");
+  Future<void> verifyOtp() async {
+    final mobile = mobileController.text.trim();
+    final otp = otpController.text.trim();
 
+    if (otp.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Enter OTP")));
+      return;
+    }
+
+    setState(() => isLoading = true);
+    final loginData = await CustomerService.loginWithOtp(mobile, otp);
+    setState(() => isLoading = false);
+
+    if (loginData != null && loginData["sid"] != null) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainNavbar()),
       );
-    } catch (e) {
-      print("[SMS Login] Mobile login failed: $e");
-      if (!mounted) return;
+    } else {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Invalid or expired OTP: $e")));
-    } finally {
-      setState(() => isLoading = false);
-      print("[SMS Login] Login process finished");
+          .showSnackBar(const SnackBar(content: Text("Invalid OTP")));
     }
   }
 
   @override
   void dispose() {
-    phoneController.dispose();
+    mobileController.dispose();
     otpController.dispose();
     super.dispose();
   }
@@ -137,41 +91,14 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.all(AppPadding.lg),
             child: Column(
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    color: AppColors.primaryBlue,
-                    onPressed: () {
-                      print("[SMS Login] Navigating back to LoginScreen");
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Icon(Icons.sms_outlined,
-                    size: 80, color: AppColors.primaryBlue),
-                const SizedBox(height: 16),
-                Text(
-                  "Login with SMS",
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "We’ll send a one-time password to your phone",
-                  style: TextStyle(color: Colors.grey[600]),
-                  textAlign: TextAlign.center,
-                ),
                 const SizedBox(height: 40),
+                Icon(Icons.mobile_friendly, size: 80, color: AppColors.primaryBlue),
+                const SizedBox(height: 12),
+                Text("SMS Login", style: AppTextStyles.headline1),
+                const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -188,53 +115,51 @@ class _SmsLoginScreenState extends State<SmsLoginScreen> {
                   child: Column(
                     children: [
                       AppTextField(
-                        controller: phoneController,
+                        controller: mobileController,
                         hintText: "Mobile Number",
                         prefixIcon: Icons.phone,
                         keyboardType: TextInputType.phone,
                       ),
-                      const SizedBox(height: 16),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 250),
-                        child: isOtpSent
-                            ? AppTextField(
-                          key: const ValueKey("otp"),
+                      const SizedBox(height: AppPadding.md),
+                      if (otpSent)
+                        AppTextField(
                           controller: otpController,
                           hintText: "Enter OTP",
-                          prefixIcon: Icons.lock_outline,
+                          prefixIcon: Icons.lock,
                           keyboardType: TextInputType.number,
-                        )
-                            : const SizedBox.shrink(),
-                      ),
-                      const SizedBox(height: 24),
+                        ),
+                      const SizedBox(height: AppPadding.md),
                       SizedBox(
                         width: double.infinity,
                         child: AppButton(
-                          text: isOtpSent ? "Login" : "Send OTP",
-                          onPressed: () {
-                            print(
-                                "[SMS Login] Button pressed (isOtpSent=$isOtpSent, isLoading=$isLoading)");
-                            if (isLoading) return;
-
-                            if (isOtpSent) {
-                              loginWithOtp();
-                            } else {
-                              requestOtp();
-                            }
-                          },
+                          text: isLoading
+                              ? "Processing..."
+                              : otpSent
+                              ? "Verify OTP"
+                              : "Send OTP",
                           color: AppColors.primaryBlue,
+                          onPressed: isLoading
+                              ? () {}
+                              : otpSent
+                              ? verifyOtp
+                              : sendOtp,
                         ),
                       ),
-                      if (customerNotFound) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          "Mobile number not registered",
+                      const SizedBox(height: AppPadding.md),
+                      TextButton(
+                        onPressed: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        ),
+                        child: Text(
+                          "Login with Username/Password",
                           style: AppTextStyles.bodyText1.copyWith(
-                            color: Colors.red,
+                            decoration: TextDecoration.underline,
                             fontWeight: FontWeight.w600,
+                            color: AppColors.primaryBlue,
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
