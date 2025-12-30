@@ -1,6 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
@@ -8,7 +13,6 @@ import '../dashboard/lib/data/local/session_manager.dart';
 import 'ticket_history_screen.dart';
 
 class TicketFormScreen extends StatefulWidget {
-  // Add an optional parameter for pre-selected subject
   final String? preSelectedSubject;
 
   const TicketFormScreen({super.key, this.preSelectedSubject});
@@ -20,16 +24,19 @@ class TicketFormScreen extends StatefulWidget {
 class _TicketFormScreenState extends State<TicketFormScreen> {
   final descriptionController = TextEditingController();
   final vehicleNumberController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
-  bool isLoading = false;
+  List<File> selectedFiles = [];
   bool isFetchingUserInfo = true;
   String? customerName;
   String? customerEmail;
   String? mobileNumber;
   String? errorMessage;
-  bool isPhoneLogin = false; // Track if user logged in with phone
+  bool isPhoneLogin = false;
 
-  // Subjects for dropdown
+  bool isLoading = false;
+  bool isUploading = false;
+
   final List<String> subjects = [
     "Inactive Device Issue",
     "Fuel Data Not Showing",
@@ -43,10 +50,175 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
   void initState() {
     super.initState();
     _fetchUserInformation();
-
-    // Use pre-selected subject if provided, otherwise default to first item
     selectedSubject = widget.preSelectedSubject ?? subjects[0];
   }
+
+  // ================== FILE PICKER ==================
+
+  Future<void> _pickFile() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _getImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () {
+                Navigator.pop(context);
+                _getImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _getImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1200,
+      );
+
+      if (pickedFile != null) {
+        final file = File(pickedFile.path);
+        setState(() {
+          selectedFiles.add(file);
+        });
+
+        _showSuccess("File added: ${pickedFile.path.split('/').last}");
+      }
+    } catch (e) {
+      print("[TicketFormScreen] Error picking image: $e");
+      _showError("Failed to pick image");
+    }
+  }
+
+  void _removeFile(int index) {
+    setState(() {
+      selectedFiles.removeAt(index);
+    });
+  }
+
+  // ================== UPLOAD FILES AND GET URLS ==================
+
+  Future<List<String>> _uploadFilesAndGetUrls() async {
+    List<String> uploadedUrls = [];
+
+    if (selectedFiles.isEmpty) return uploadedUrls;
+
+    try {
+      final session = await SessionManager.getCustomerSession();
+      final sid = session?["sid"] ?? "";
+
+      if (sid.isEmpty) {
+        throw Exception("No active session found");
+      }
+
+      for (var file in selectedFiles) {
+        final fileName = file.path.split('/').last;
+        final fileBytes = await file.readAsBytes();
+
+        print("[TicketFormScreen] Uploading file: $fileName");
+
+        final url = Uri.parse("http://erp.telemko.com/api/method/upload_file");
+
+        final request = http.MultipartRequest('POST', url);
+        request.headers['Cookie'] = 'sid=$sid';
+        request.headers['Accept'] = 'application/json';
+
+        request.files.add(
+            http.MultipartFile.fromBytes(
+              'file',
+              fileBytes,
+              filename: fileName,
+            )
+        );
+
+        request.fields['is_private'] = '0';
+        request.fields['folder'] = 'Home';
+
+        final response = await request.send();
+        final responseBody = await response.stream.bytesToString();
+
+        if (response.statusCode == 200) {
+          final jsonResponse = jsonDecode(responseBody);
+          final message = jsonResponse["message"];
+
+          if (message is Map<String, dynamic>) {
+            String? fileUrl = message["file_url"]?.toString();
+            if (fileUrl == null || fileUrl.isEmpty) {
+              fileUrl = message["file_name"]?.toString();
+            }
+
+            if (fileUrl != null && fileUrl.isNotEmpty) {
+              if (!fileUrl.startsWith('/files/') && !fileUrl.startsWith('http')) {
+                fileUrl = '/files/$fileUrl';
+              }
+
+              if (fileUrl.startsWith('/files/')) {
+                fileUrl = 'http://erp.telemko.com$fileUrl';
+              }
+
+              uploadedUrls.add(fileUrl);
+              print("[TicketFormScreen] File uploaded successfully: $fileUrl");
+            }
+          }
+        } else {
+          print("[TicketFormScreen] Upload failed for $fileName");
+        }
+      }
+
+      return uploadedUrls;
+    } catch (e) {
+      print("[TicketFormScreen] Error uploading files: $e");
+      return uploadedUrls;
+    }
+  }
+
+  // ================== BUILD DESCRIPTION WITH IMAGES ==================
+
+  String _buildDescriptionWithImages(String originalDescription, List<String> fileUrls) {
+    if (fileUrls.isEmpty) return originalDescription;
+
+    String description = originalDescription;
+
+    // Add a separator
+    description += "\n\n   \n";
+
+    // Add each file as clickable image/link in HTML format
+    for (var fileUrl in fileUrls) {
+      final fileName = fileUrl.split('/').last;
+      final isImage = fileName.toLowerCase().endsWith('.jpg') ||
+          fileName.toLowerCase().endsWith('.jpeg') ||
+          fileName.toLowerCase().endsWith('.png') ||
+          fileName.toLowerCase().endsWith('.gif');
+
+      if (isImage) {
+        // For images, embed HTML that Frappe will render
+        description += '\n<img src="$fileUrl" alt="$fileName" width="300"><br>';
+        description += '<a href="$fileUrl">$fileName</a>\n';
+      } else {
+        // For non-images, just show the link
+        description += '\n<a href="$fileUrl">$fileName</a>\n';
+      }
+    }
+
+    return description;
+  }
+
+  // ================== USER DATA FETCHING ==================
 
   Future<void> _fetchUserInformation() async {
     setState(() {
@@ -62,7 +234,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         throw Exception("No active session found. Please login again.");
       }
 
-      // Get logged user from Frappe API
       final loggedUserUrl = Uri.parse("http://erp.telemko.com/api/method/frappe.auth.get_logged_user");
 
       final loggedUserResponse = await http.get(
@@ -78,30 +249,24 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         final username = loggedUserData["message"]?.toString() ?? "";
 
         if (username.isNotEmpty) {
-          // Check if username is phone number (contains only digits)
           final isPhoneNumber = RegExp(r'^[0-9]+$').hasMatch(username);
           setState(() => isPhoneLogin = isPhoneNumber);
 
-          print("[TicketFormScreen] Username: $username, Is Phone Login: $isPhoneNumber");
-
           await _fetchUserDetails(sid, username, session, isPhoneNumber);
         } else {
-          // Use session data as fallback
           customerName = session?["customer_name"] ?? "";
           customerEmail = session?["email"] ?? "";
           mobileNumber = session?["mobile_no"] ?? "";
         }
       } else {
-        // Fallback to session data
         customerName = session?["customer_name"] ?? "";
         customerEmail = session?["email"] ?? "";
         mobileNumber = session?["mobile_no"] ?? "";
       }
     } catch (e) {
       print("[TicketFormScreen] Error fetching user info: $e");
-      errorMessage = "Failed to load user information: ${e.toString()}";
+      errorMessage = "Failed to load user information";
 
-      // Fallback to session data
       final session = await SessionManager.getCustomerSession();
       customerName = session?["customer_name"] ?? "";
       customerEmail = session?["email"] ?? "";
@@ -113,14 +278,11 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
   Future<void> _fetchUserDetails(String sid, String username, Map<String, dynamic>? session, bool isPhoneNumber) async {
     try {
-      // If it's a phone number, fetch customer by mobile_no
       if (isPhoneNumber) {
         await _fetchCustomerByMobile(sid, username, session);
         return;
       }
 
-      // Otherwise, it's email or username
-      // First try to get from User doctype
       final userUrl = Uri.parse(
           "http://erp.telemko.com/api/resource/User/$username"
               "?fields=[\"email\", \"full_name\", \"mobile_no\"]"
@@ -144,13 +306,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
             mobileNumber = user["mobile_no"]?.toString() ?? session?["mobile_no"] ?? "";
           });
 
-          // Debug: Check what we got
-          print("[TicketFormScreen] User details from User doctype:");
-          print("  Email: $customerEmail");
-          print("  Name: $customerName");
-          print("  Mobile: $mobileNumber");
-
-          // If we got email, try to get customer details by email
           if (customerEmail != null && customerEmail!.isNotEmpty && customerEmail!.contains("@")) {
             await _fetchCustomerByEmail(sid, customerEmail!, session);
           }
@@ -158,7 +313,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         }
       }
 
-      // If not found in User, try Customer doctype
       await _fetchCustomerDetails(sid, username, session);
     } catch (e) {
       print("[TicketFormScreen] Error fetching user details: $e");
@@ -193,38 +347,28 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         final customerData = jsonDecode(customerResponse.body);
         if (customerData["data"] != null && customerData["data"].isNotEmpty) {
           final customer = customerData["data"][0];
-          print("[TicketFormScreen] Found customer by mobile:");
-          print("  Customer ID: ${customer["name"]}");
-          print("  Customer Name: ${customer["customer_name"]}");
-          print("  Mobile: ${customer["mobile_no"]}");
-          print("  Email: ${customer["email_id"]}");
-
           setState(() {
             customerName = customer["customer_name"]?.toString() ?? "";
-            mobileNumber = customer["mobile_no"]?.toString() ?? mobileNumber;
+            this.mobileNumber = customer["mobile_no"]?.toString() ?? mobileNumber;
             customerEmail = customer["email_id"]?.toString() ?? "";
           });
         } else {
-          print("[TicketFormScreen] No customer found with mobile: $mobileNumber");
-          // Create a dummy email for phone-only users
           setState(() {
             customerName = session?["customer_name"] ?? "Customer";
-            customerEmail = "$mobileNumber@phoneuser.telemko.com"; // Dummy email
+            customerEmail = "$mobileNumber@phoneuser.telemko.com";
           });
         }
       } else {
-        // Create a dummy email for phone-only users
         setState(() {
           customerName = session?["customer_name"] ?? "Customer";
-          customerEmail = "$mobileNumber@phoneuser.telemko.com"; // Dummy email
+          customerEmail = "$mobileNumber@phoneuser.telemko.com";
         });
       }
     } catch (e) {
       print("[TicketFormScreen] Error fetching customer by mobile: $e");
-      // Create a dummy email for phone-only users
       setState(() {
         customerName = session?["customer_name"] ?? "Customer";
-        customerEmail = "$mobileNumber@phoneuser.telemko.com"; // Dummy email
+        customerEmail = "$mobileNumber@phoneuser.telemko.com";
       });
     }
   }
@@ -250,12 +394,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         final customerData = jsonDecode(customerResponse.body);
         if (customerData["data"] != null && customerData["data"].isNotEmpty) {
           final customer = customerData["data"][0];
-          print("[TicketFormScreen] Found customer by email:");
-          print("  Customer ID: ${customer["name"]}");
-          print("  Customer Name: ${customer["customer_name"]}");
-          print("  Mobile: ${customer["mobile_no"]}");
-          print("  Email: ${customer["email_id"]}");
-
           setState(() {
             if (customer["customer_name"] != null && customer["customer_name"].toString().isNotEmpty) {
               customerName = customer["customer_name"]?.toString() ?? customerName;
@@ -273,7 +411,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
   Future<void> _fetchCustomerDetails(String sid, String username, Map<String, dynamic>? session) async {
     try {
-      // Try different filters
       String filterField = username.contains("@") ? "email_id" : "customer_name";
       String filterValue = username;
 
@@ -305,7 +442,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         }
       }
 
-      // If not found, use session data
       setState(() {
         customerName = session?["customer_name"] ?? username;
         mobileNumber = session?["mobile_no"] ?? "";
@@ -321,28 +457,23 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     }
   }
 
+  // ================== TICKET SUBMISSION ==================
+
   Future<void> submitTicket() async {
     final description = descriptionController.text.trim();
     final vehicleNumber = vehicleNumberController.text.trim();
 
-    // Validate required fields
     if (selectedSubject == null || selectedSubject!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a subject")),
-      );
+      _showError("Please select a subject");
       return;
     }
 
     if (description.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a description")),
-      );
+      _showError("Please enter a description");
       return;
     }
 
-    // IMPORTANT: For phone login users, we generate a dummy email
     if (isPhoneLogin && (customerEmail == null || customerEmail!.isEmpty)) {
-      // Generate a consistent dummy email for phone users
       final phone = mobileNumber ?? "unknown";
       customerEmail = "$phone@phoneuser.telemko.com";
     }
@@ -353,7 +484,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       final session = await SessionManager.getCustomerSession();
       final sid = session?["sid"] ?? "";
 
-      // Get values with fallbacks
       final loggedCustomerName = customerName ?? session?["customer_name"] ?? "Customer";
       final loggedCustomerEmail = customerEmail ?? session?["email"] ?? "";
       final loggedMobile = mobileNumber ?? session?["mobile_no"] ?? "";
@@ -362,65 +492,57 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         throw Exception("No session found. Please login again.");
       }
 
-      // DEBUG: Print what we're sending
-      print("[TicketFormScreen] Creating ticket with:");
-      print("  Customer Email: $loggedCustomerEmail");
-      print("  Customer Name: $loggedCustomerName");
-      print("  Mobile: $loggedMobile");
-      print("  Vehicle: $vehicleNumber");
-      print("  Is Phone Login: $isPhoneLogin");
+      // ========== STEP 1: UPLOAD FILES FIRST (IF ANY) ==========
+      List<String> uploadedFileUrls = [];
+      if (selectedFiles.isNotEmpty) {
+        setState(() => isUploading = true);
+        uploadedFileUrls = await _uploadFilesAndGetUrls();
+        setState(() => isUploading = false);
+      }
 
-      // Create ticket with ALL customer details
+      // ========== STEP 2: CREATE TICKET WITH EMBEDDED IMAGES ==========
+      String finalDescription = description;
+
+      // Build description with embedded HTML images
+      if (uploadedFileUrls.isNotEmpty) {
+        finalDescription = _buildDescriptionWithImages(description, uploadedFileUrls);
+      }
+
       final Map<String, dynamic> ticketData = {
         "subject": selectedSubject,
-        "description": description,
-        "status": "Open", // Default status
+        "description": finalDescription, // This now contains HTML with embedded images
+        "status": "Open",
       };
 
-      // SOLUTION: Use customer_name for the customer field - this should exist in your ERP
-      // For phone users without proper customer_name, use mobile number as customer field
       if (loggedCustomerName.isNotEmpty && loggedCustomerName != "Customer") {
-        // Use customer name for the customer field
         ticketData["customer"] = loggedCustomerName;
       } else if (loggedMobile.isNotEmpty) {
-        // For phone users, use mobile number as customer
         ticketData["customer"] = loggedMobile;
-        print("[TicketFormScreen] Using mobile as customer field: $loggedMobile");
       } else {
-        // Fallback to email
         ticketData["customer"] = loggedCustomerEmail;
       }
 
-      // Customer display name
       if (loggedCustomerName.isNotEmpty) {
         ticketData["customer_name"] = loggedCustomerName;
       }
 
-      // Who raised the ticket - use email or mobile for phone users
       if (loggedCustomerEmail.isNotEmpty) {
         ticketData["raised_by"] = loggedCustomerEmail;
       } else if (loggedMobile.isNotEmpty) {
-        // For phone-only users, use mobile number as raised_by
         ticketData["raised_by"] = loggedMobile;
       }
 
-      // Mobile number
       if (loggedMobile.isNotEmpty) {
         ticketData["mobile_no"] = loggedMobile;
       }
 
-      // Vehicle number - Use custom_vehical_number as per your ERP
       if (vehicleNumber.isNotEmpty) {
         ticketData["custom_vehical_number"] = vehicleNumber;
       }
 
       final url = Uri.parse("http://erp.telemko.com/api/resource/Issue");
 
-      // Debug log
-      print("[TicketFormScreen] Final ticket data being sent:");
-      ticketData.forEach((key, value) {
-        print("  $key: $value");
-      });
+      print("[TicketFormScreen] Creating ticket with embedded images...");
 
       final response = await http.post(
         url,
@@ -432,50 +554,132 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       );
 
       print("[TicketFormScreen] Create ticket response: ${response.statusCode}");
-      print("[TicketFormScreen] Response body: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
         final ticketId = responseData["data"]?["name"] ?? "";
 
+        if (ticketId.isEmpty) {
+          throw Exception("No ticket ID returned from server");
+        }
+
+        print("[TicketFormScreen] Ticket created with ID: $ticketId");
+
+        // ========== STEP 3: ATTACH FILES TO TICKET (OPTIONAL - ALREADY IN DESCRIPTION) ==========
+        // You can still attach files properly to the Issue doctype if needed
+        if (uploadedFileUrls.isNotEmpty) {
+          // Optional: Link files to the ticket in Frappe's attachment system
+          for (var fileUrl in uploadedFileUrls) {
+            try {
+              final attachUrl = Uri.parse("http://erp.telemko.com/api/method/frappe.desk.form.save.add_attachments");
+
+              final attachResponse = await http.post(
+                attachUrl,
+                headers: {
+                  "Content-Type": "application/json",
+                  "Cookie": "sid=$sid",
+                },
+                body: jsonEncode({
+                  "docname": ticketId,
+                  "filename": fileUrl.split('/').last,
+                  "file_url": fileUrl,
+                  "doctype": "Issue",
+                }),
+              );
+
+              if (attachResponse.statusCode == 200) {
+                print("[TicketFormScreen] File attached to ticket: $fileUrl");
+              }
+            } catch (e) {
+              print("[TicketFormScreen] Error attaching file: $e");
+              // Continue even if attachment fails - images are already in description
+            }
+          }
+        }
+
+        // ========== SHOW SUCCESS MESSAGE ==========
+        String successMessage;
+        if (selectedFiles.isNotEmpty && uploadedFileUrls.isNotEmpty) {
+          successMessage = "Ticket #$ticketId created successfully!\n"
+              "${uploadedFileUrls.length} file(s) uploaded and embedded in description.";
+        } else if (selectedFiles.isNotEmpty) {
+          successMessage = "Ticket #$ticketId created successfully!\n"
+              "Note: Files could not be uploaded but ticket was created.";
+        } else {
+          successMessage = "Ticket #$ticketId created successfully!";
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ticketId.isNotEmpty
-                ? "Ticket #$ticketId created successfully"
-                : "Ticket created successfully"),
+            content: Text(successMessage),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
           ),
         );
 
         // Clear form
         descriptionController.clear();
         vehicleNumberController.clear();
+        setState(() {
+          selectedFiles.clear();
+        });
 
-        // Navigate to Ticket History after a short delay
-        Future.delayed(const Duration(milliseconds: 1500), () {
+        // Navigate after delay
+        Future.delayed(const Duration(milliseconds: 2000), () {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const TicketHistoryScreen()),
           );
         });
+
       } else {
         final errorBody = response.body;
-        throw Exception(
-            "Failed to create ticket. Status: ${response.statusCode}\n$errorBody"
-        );
+        throw Exception("Failed to create ticket. Status: ${response.statusCode}");
       }
     } catch (e) {
       print("[TicketFormScreen] Error creating ticket: $e");
+
+      String errorMsg = e.toString();
+      if (errorMsg.contains("PermissionError") || errorMsg.contains("403")) {
+        errorMsg = "Permission denied. Please check user permissions in Frappe.";
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Error: ${e.toString()}"),
+          content: Text("Error: $errorMsg"),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
         ),
       );
     } finally {
-      setState(() => isLoading = false);
+      setState(() {
+        isLoading = false;
+        isUploading = false;
+      });
     }
   }
+
+  // ================== HELPER METHODS ==================
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  // ================== UI WIDGETS ==================
 
   Widget _buildInfoField(String label, String? value) {
     return Column(
@@ -595,6 +799,157 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     );
   }
 
+  Widget _buildAttachmentSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Attachments (Optional)",
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Upload Button
+        ElevatedButton.icon(
+          onPressed: _pickFile,
+          icon: const Icon(Icons.add_a_photo),
+          label: const Text(
+            "Add Photo/File",
+            style: TextStyle(fontSize: 16),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryBlue,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Upload status
+        if (isUploading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  "Uploading files...",
+                  style: TextStyle(color: Colors.blue, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+
+        // File list
+        if (selectedFiles.isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              Text(
+                "Selected Files (${selectedFiles.length}):",
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...List.generate(selectedFiles.length, (index) {
+                final file = selectedFiles[index];
+                final fileName = file.path.split('/').last;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFFC8E6C9),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.image,
+                        color: Colors.green,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fileName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              "Will be embedded in ticket description",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF388E3C),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                        onPressed: () => _removeFile(index),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+
+        const SizedBox(height: 8),
+
+        // Info note
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE3F2FD),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info, color: Colors.blue, size: 16),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Files will be uploaded and embedded as images in the ticket description.",
+                  style: TextStyle(fontSize: 12, color: Color(0xFF1565C0)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     descriptionController.dispose();
@@ -622,19 +977,19 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: const Color(0xFFE3F2FD),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.blue),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.gps_fixed, color: AppColors.primaryBlue, size: 20),
+                    const Icon(Icons.gps_fixed, color: Colors.blue, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         "GPS Issue Ticket - 'GPS Not Working' is pre-selected",
-                        style: TextStyle(
-                          color: AppColors.primaryBlue,
+                        style: const TextStyle(
+                          color: Colors.blue,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -649,7 +1004,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: const Color(0xFFFFF3E0),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.orange),
                 ),
@@ -699,7 +1054,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                     padding: const EdgeInsets.all(8),
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
-                      color: Colors.yellow[50],
+                      color: const Color(0xFFFFF3E0),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
@@ -756,18 +1111,23 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                   controller: descriptionController,
                   hintText: "Describe your issue in detail...",
                   prefixIcon: Icons.description,
-                  maxLines: 6,
+                  maxLines: 4,
                 ),
               ],
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+
+            // Attachment Section
+            _buildAttachmentSection(),
+
+            const SizedBox(height: 24),
 
             SizedBox(
               width: double.infinity,
               child: AppButton(
                 text: isLoading ? "Creating Ticket..." : "Submit Ticket",
-                onPressed: isLoading ? null : submitTicket,
+                onPressed: (isLoading || isUploading) ? null : submitTicket,
                 color: AppColors.primaryBlue,
               ),
             ),
@@ -778,21 +1138,21 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: const Color(0xFFE3F2FD),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info, color: AppColors.primaryBlue, size: 20),
+                  const Icon(Icons.info, color: Colors.blue, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       isPhoneLogin
                           ? "You logged in with phone number. Tickets will be linked to your mobile number."
                           : "Your customer information is fetched from your account. Tickets will be linked to your email.",
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: Colors.blue[800],
+                        color: Color(0xFF1565C0),
                       ),
                     ),
                   ),
