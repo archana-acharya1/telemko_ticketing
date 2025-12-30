@@ -8,7 +8,10 @@ import '../dashboard/lib/data/local/session_manager.dart';
 import 'ticket_history_screen.dart';
 
 class TicketFormScreen extends StatefulWidget {
-  const TicketFormScreen({super.key});
+  // Add an optional parameter for pre-selected subject
+  final String? preSelectedSubject;
+
+  const TicketFormScreen({super.key, this.preSelectedSubject});
 
   @override
   State<TicketFormScreen> createState() => _TicketFormScreenState();
@@ -40,7 +43,9 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
   void initState() {
     super.initState();
     _fetchUserInformation();
-    selectedSubject = subjects[0];
+
+    // Use pre-selected subject if provided, otherwise default to first item
+    selectedSubject = widget.preSelectedSubject ?? subjects[0];
   }
 
   Future<void> _fetchUserInformation() async {
@@ -611,6 +616,33 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Show a note if GPS Not Working is pre-selected
+            if (selectedSubject == "GPS Not Working")
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.gps_fixed, color: AppColors.primaryBlue, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "GPS Issue Ticket - 'GPS Not Working' is pre-selected",
+                        style: TextStyle(
+                          color: AppColors.primaryBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             if (errorMessage != null)
               Container(
                 width: double.infinity,
@@ -731,7 +763,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
             const SizedBox(height: 32),
 
-            // Submit Button - Always enabled now
             SizedBox(
               width: double.infinity,
               child: AppButton(

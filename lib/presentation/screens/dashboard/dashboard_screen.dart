@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/quick_link_card.dart';
 import '../tickets/ticket_form_screen.dart';
-import '../tickets/gps_ticket_screen.dart';
-import '../tickets/fuel_ticket_screen.dart';
-import '../tickets/dashcam_ticket_screen.dart';
 import '../auth/logout_screen.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_constants.dart';
@@ -62,13 +59,13 @@ class DashboardScreen extends StatelessWidget {
                 // CREATE SUPPORT TICKET
                 GestureDetector(
                   onTap: () {
-          print("[Dashboard] Create Support Ticket tapped");
+                    print("[Dashboard] Create Support Ticket tapped");
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const TicketFormScreen()),
-            );
-            },
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TicketFormScreen()),
+                    );
+                  },
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -121,9 +118,9 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
-                // QUICK LINKS
+                // QUICK LINKS title changed to tickets and support
                 Text(
-                  "Quick Links",
+                  "Tickets & Support",
                   style: AppTextStyles.headline2.copyWith(fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
                 const SizedBox(height: AppPadding.md),
@@ -135,17 +132,16 @@ class DashboardScreen extends StatelessWidget {
                   mainAxisSpacing: AppPadding.sm,
                   childAspectRatio: 0.85,
                   children: [
-                    _buildQuickLink(context, title: "GPS", icon: Icons.gps_fixed, screen: const GPSTicketScreen()),
-                    _buildQuickLink(context, title: "Fuel Sensor", icon: Icons.local_gas_station, screen: const FuelTicketScreen()),
-                    _buildQuickLink(context, title: "Dashcam Live", icon: Icons.video_camera_back, screen: const DashcamTicketScreen()),
-                    _buildQuickLink(context, title: "Customer Support", icon: Icons.call, screen: CustomerSupportScreen()),
-                    _buildQuickLink(context, title: "Make Payment", icon: Icons.payment, screen: const PaymentScreen()),
-                    _buildQuickLink(context, title: "New Devices", icon: Icons.devices, screen: const DevicesScreen()),
+                    _buildQuickLink(context, title: "GPS", icon: Icons.gps_fixed),
+                    _buildQuickLink(context, title: "Fuel Sensor", icon: Icons.local_gas_station),
+                    _buildQuickLink(context, title: "Dashcam Live", icon: Icons.video_camera_back),
+                    _buildQuickLink(context, title: "Customer Support", icon: Icons.call),
+                    _buildQuickLink(context, title: "Make Payment", icon: Icons.payment),
+                    _buildQuickLink(context, title: "New Devices", icon: Icons.devices),
                     _buildQuickLink(
                       context,
                       title: "My Tickets",
                       icon: Icons.receipt_long,
-                      screen: const TicketHistoryScreen(),
                     ),
                   ],
                 ),
@@ -157,16 +153,44 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickLink(BuildContext context, {required String title, required IconData icon, required Widget screen}) {
+  Widget _buildQuickLink(BuildContext context, {required String title, required IconData icon}) {
+    // Determine which screen to show based on title
+    Widget targetScreen;
+
+    switch (title) {
+      case "GPS":
+        targetScreen = TicketFormScreen(preSelectedSubject: "GPS Not Working");
+        break;
+      case "Fuel Sensor":
+        targetScreen = TicketFormScreen(preSelectedSubject: "Fuel Data Not Showing");
+        break;
+      case "Dashcam Live":
+        targetScreen = TicketFormScreen(preSelectedSubject: "Video Not Showing");
+        break;
+      case "Customer Support":
+        targetScreen = CustomerSupportScreen();
+        break;
+      case "Make Payment":
+        targetScreen = const PaymentScreen();
+        break;
+      case "New Devices":
+        targetScreen = const DevicesScreen();
+        break;
+      case "My Tickets":
+        targetScreen = const TicketHistoryScreen();
+        break;
+      default:
+        targetScreen = const TicketFormScreen(); // Default general form
+    }
+
     return QuickLinkCard(
       title: title,
       icon: icon,
       textColor: Colors.black87,
       onTap: () {
         print("[Dashboard] Quick link tapped: $title");
-      Navigator.push(context, MaterialPageRoute(builder: (_) => screen)
-    );
-  },
+        Navigator.push(context, MaterialPageRoute(builder: (_) => targetScreen));
+      },
     );
   }
 }
