@@ -80,7 +80,10 @@ class CustomerSupportScreen extends StatelessWidget {
     print("[CustomerSupport] Screen Loaded");
     return Scaffold(
       appBar: AppBar(
-        title: Text("Customer Support", style: AppTextStyles.headline2),
+        title: Text(
+          "Customer Support",
+          style: AppTextStyles.headline2.copyWith(color: Colors.white),
+        ),
         centerTitle: true,
         backgroundColor: AppColors.primaryBlue,
       ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_text_styles.dart';
+
 class DevicesScreen extends StatelessWidget {
   const DevicesScreen({super.key});
 
@@ -13,7 +15,7 @@ class DevicesScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           "New Devices",
-          style: theme.textTheme.titleLarge,
+          style: AppTextStyles.headline2.copyWith(color: Colors.white),
         ),
         centerTitle: true,
       ),

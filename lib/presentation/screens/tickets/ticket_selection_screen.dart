@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../widgets/quick_link_card.dart';
 import 'ticket_form_screen.dart';
 import 'gps_ticket_screen.dart';
@@ -12,7 +13,10 @@ class TicketSelectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Select Ticket Type"),
+        title: Text(
+          "Select Ticket Type",
+          style: AppTextStyles.headline2.copyWith(color: Colors.white),
+        ),
         centerTitle: true,
       ),
       body: Padding(
