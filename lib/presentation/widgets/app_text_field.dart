@@ -8,11 +8,14 @@ class AppTextField extends StatelessWidget {
   final String hintText;
   final IconData? prefixIcon;
   final int maxLines;
+  final int minLines;
   final Widget? suffixIcon;
   final bool obscureText;
 
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
+  final String? Function(String?)? validator;
+  final void Function(String?)? onSaved;
 
   const AppTextField({
     super.key,
@@ -24,6 +27,9 @@ class AppTextField extends StatelessWidget {
     this.keyboardType,
     this.onChanged,
     this.maxLines =1,
+    this.minLines = 1,
+    this.validator,
+    this.onSaved,
   });
 
   @override

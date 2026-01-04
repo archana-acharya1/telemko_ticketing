@@ -189,15 +189,17 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
   // ================== BUILD DESCRIPTION WITH IMAGES ==================
 
+  // ================== BUILD DESCRIPTION WITH IMAGES ==================
+
   String _buildDescriptionWithImages(String originalDescription, List<String> fileUrls) {
     if (fileUrls.isEmpty) return originalDescription;
 
     String description = originalDescription;
 
-    // Add a separator
-    description += "\n\n   \n";
+    // Add spacing and a visual separator
+    description += "\n\n\n\n<br>\n";
 
-    // Add each file as clickable image/link in HTML format
+    // Add each image on a new line
     for (var fileUrl in fileUrls) {
       final fileName = fileUrl.split('/').last;
       final isImage = fileName.toLowerCase().endsWith('.jpg') ||
@@ -206,18 +208,13 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
           fileName.toLowerCase().endsWith('.gif');
 
       if (isImage) {
-        // For images, embed HTML that Frappe will render
-        description += '\n<img src="$fileUrl" alt="$fileName" width="300"><br>';
-        description += '<a href="$fileUrl">$fileName</a>\n';
-      } else {
-        // For non-images, just show the link
-        description += '\n<a href="$fileUrl">$fileName</a>\n';
+        // Image with better spacing
+        description += '<br><img src="$fileUrl" style="max-width: 400px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;"><br>\n';
       }
     }
 
     return description;
   }
-
   // ================== USER DATA FETCHING ==================
 
   Future<void> _fetchUserInformation() async {
@@ -533,7 +530,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       }
 
       if (loggedMobile.isNotEmpty) {
-        ticketData["mobile_no"] = loggedMobile;
+        ticketData["custom_mobile_no"] = loggedMobile;
       }
 
       if (vehicleNumber.isNotEmpty) {

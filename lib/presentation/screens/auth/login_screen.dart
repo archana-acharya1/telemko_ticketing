@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:telemko_support/presentation/screens/auth/register_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_constants.dart';
@@ -6,7 +7,7 @@ import '../../../services/customer_service.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../navbar/main_navbar.dart';
-import 'sms_login_screen.dart'; // Add this import
+import 'sms_auth_screen.dart'; // Add this import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -177,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const SmsLoginScreen(),
+                                builder: (_) => const SmsAuthScreen(),
                               ),
                             );
                           },
@@ -198,7 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                "Login with SMS",
+                                "Login/Register with SMS",
                                 style: TextStyle(
                                   color: AppColors.primaryBlue,
                                   fontSize: 16,
@@ -209,11 +210,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+
                     ],
                   ),
                 ),
 
-                // Add some bottom padding
+
                 const SizedBox(height: 40),
               ],
             ),

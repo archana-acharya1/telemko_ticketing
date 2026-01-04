@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:telemko_support/presentation/screens/auth/login_screen.dart';
-import '../../widgets/app_button.dart';
-import '../../widgets/app_text_field.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_constants.dart';
+import 'package:telemko_support/presentation/screens/auth/sms_auth_screen.dart';
+import 'register_with_sms_screen.dart'; // Add this import
+import '../auth/login_screen.dart'; // Keep this for back navigation
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,59 +11,6 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final createPasswordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-
-  bool isCreatePasswordVisible = false;
-  bool isConfirmPasswordVisible = false;
-  bool isLoading = false;
-  String? errorMessage;
-
-  void handleRegister() async {
-    print("[RegisterScreen] Register button clicked");
-    setState(() {
-      errorMessage = null;
-    });
-
-    final name = nameController.text.trim();
-    final email = emailController.text.trim();
-    final password = createPasswordController.text;
-    final confirmPassword = confirmPasswordController.text;
-
-    print("[RegisterScreen] Name: $name, Email: $email");
-
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      print("[RegisterScreen] Validation failed: Empty fields");
-      setState(() {
-        errorMessage = "All fields are required";
-      });
-      return;
-    }
-
-    if (password != confirmPassword) {
-      print("[RegisterScreen] Validation failed: Passwords do not match");
-      setState(() {
-        errorMessage = "Passwords do not match";
-      });
-      return;
-    }
-
-    print("[RegisterScreen] Registration started");
-    //loading simulation for delay
-    setState(() => isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => isLoading = false);
-    print("[RegisterScreen] Registration completed, navigating to LoginScreen");
-
-    // Navigate to login, will change later
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,174 +20,155 @@ class _RegisterScreenState extends State<RegisterScreen> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppColors.gradientTop,
-              AppColors.gradientBottom,
+              Color(0xFF6A11CB),
+              Color(0xFF2575FC),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppPadding.lg),
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.app_registration,
+                size: 100,
+                color: Colors.white,
+              ),
 
-                Icon(
-                  Icons.support_agent,
-                  size: 80,
-                  color: AppColors.primaryBlue,
+              const SizedBox(height: 20),
+
+              const Text(
+                "Choose Registration Method",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
 
-                const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-                Text(
-                  "Telemko Support",
-                  style: AppTextStyles.headline1,
-                ),
-
-                const SizedBox(height: 6),
-
-                Text(
-                  "Create an account to manage your support tickets",
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  "Select how you want to create your account",
                   style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
+                    color: Colors.white70,
+                    fontSize: 16,
                   ),
+                  textAlign: TextAlign.center,
                 ),
+              ),
 
-                const SizedBox(height: 40),
+              const SizedBox(height: 40),
 
-                // register card
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 16,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      AppTextField(
-                        controller: nameController,
-                        hintText: "Full Name",
-                        prefixIcon: Icons.person,
-                      ),
-
-                      const SizedBox(height: AppPadding.md),
-
-                      AppTextField(
-                        controller: emailController,
-                        hintText: "Phone / Email",
-                        prefixIcon: Icons.email,
-                      ),
-
-                      const SizedBox(height: AppPadding.md),
-
-                      //  Create Password
-                      AppTextField(
-                        controller: createPasswordController,
-                        hintText: "Create Password",
-                        prefixIcon: Icons.lock,
-                        obscureText: !isCreatePasswordVisible,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            isCreatePasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              isCreatePasswordVisible = !isCreatePasswordVisible;
-                            });
-                            print("[RegisterScreen] Toggled create password visibility");
-                          },
+              // SMS Registration Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SmsAuthScreen(),
                         ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-
-                      const SizedBox(height: AppPadding.md),
-
-                      //  Confirm Password
-                      AppTextField(
-                        controller: confirmPasswordController,
-                        hintText: "Confirm Password",
-                        prefixIcon: Icons.lock,
-                        obscureText: !isConfirmPasswordVisible,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            isConfirmPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              isConfirmPasswordVisible = !isConfirmPasswordVisible;
-                            });
-                            print("[RegisterScreen] Toggled confirm password visibility");
-                          },
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.sms,
+                          color: Colors.blue,
+                          size: 24,
                         ),
-                      ),
-
-                      const SizedBox(height: AppPadding.md),
-
-                      // Error message
-                      if (errorMessage != null) ...[
-                        Text(
-                          errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
+                        const SizedBox(width: 12),
+                        const Text(
+                          "Register with SMS",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: AppPadding.md)
                       ],
-
-                      // Register button
-                      SizedBox(
-                        width: double.infinity,
-                        child: AppButton(
-                          text: isLoading ? "Registering..." : "Register",
-                          onPressed: isLoading ? () {} : handleRegister,
-                          color: AppColors.primaryBlue,
-                        ),
-                      ),
-
-                      const SizedBox(height: AppPadding.md),
-
-                      // Already have an account
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text("Already have an account? "),
-                          GestureDetector(
-                            onTap: () {
-                              print("[RegisterScreen] Navigating back to LoginScreen");
-                              Navigator.pop(context);
-                            },
-                            child: Text(
-                              "Login",
-                              style: TextStyle(
-                                color: AppColors.primaryBlue,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
+              ),
 
-                const SizedBox(height: AppPadding.lg),
-              ],
-            ),
+              const SizedBox(height: 20),
+
+              // Email Registration Button (optional for future)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      // Navigate to email registration if you implement it later
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Email registration coming soon")),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.email,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          "Register with Email",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 40),
+
+              // Back to Login
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  "Back to Login",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

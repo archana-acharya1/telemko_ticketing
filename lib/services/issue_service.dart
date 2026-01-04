@@ -20,7 +20,7 @@ class IssueService {
       final sid = session["sid"];
       final customerName = session["customer_name"] ?? "";
       final mobileNumber = session["mobile_no"] ?? "";
-      final email = session["email"] ?? "";
+      final email = session["email_id"] ?? session["email"] ?? "";
 
       print("[IssueService] User session - Name: $customerName, Mobile: $mobileNumber, Email: $email");
 
@@ -43,12 +43,12 @@ class IssueService {
         print("[IssueService] resource API failed: $e");
       }
 
-      // METHOD 3: Try custom endpoint
+      // METHOD 3: Try fallback with minimal fields
       try {
-        issues = await fetchUsingCustomEndpoint();
+        issues = await _fetchWithMinimalFields(sid, customerName, mobileNumber, email);
         if (issues.isNotEmpty) return issues;
       } catch (e) {
-        print("[IssueService] custom endpoint failed: $e");
+        print("[IssueService] fallback failed: $e");
       }
 
       // If all methods fail, return empty
@@ -64,15 +64,15 @@ class IssueService {
     try {
       print("[IssueService] Using get_list API with expanded fields");
 
-      // Build request body with ALL fields you need
+      // Build request body with ALL fields you need - KEEPING description for images
       final Map<String, dynamic> body = {
         "doctype": "Issue",
         "fields": [
           "name", "subject", "status", "priority", "description",
           "creation", "modified", "raised_by",
-          "customer", "customer_name", "contact_mobile", "mobile_no",
-          "vehicle_number", "issue_type", "resolution_details",
-          "assigned_to", "opened_by", "contact_email"
+          "customer", "customer_name",
+          "custom_mobile_number",
+          "issue_type", "resolution_details"
         ],
         "limit_page_length": 100,
         "order_by": "creation desc"
@@ -89,8 +89,8 @@ class IssueService {
       }
 
       if (mobileNumber.isNotEmpty) {
-        filters.add(["contact_mobile", "=", mobileNumber]);
-        filters.add(["mobile_no", "=", mobileNumber]);
+        // Try with custom_mobile_no field
+        filters.add(["custom_mobile_no", "=", mobileNumber]);
       }
 
       if (email.isNotEmpty && email.contains("@")) {
@@ -132,21 +132,38 @@ class IssueService {
         // Debug: Print fields of first ticket
         if (issues.isNotEmpty) {
           print("[IssueService] First ticket fields:");
-          issues[0].forEach((key, value) {
-            if (value != null) {
-              print("  $key: $value");
+          final firstTicket = issues[0] as Map<String, dynamic>;
+
+          // Check for description (for images)
+          if (firstTicket.containsKey("description") && firstTicket["description"] != null) {
+            final desc = firstTicket["description"].toString();
+            print("  ✓ description: ${desc.length} chars");
+            // Check if it contains images
+            if (desc.contains("<img")) {
+              print("  ✓ Contains images in HTML");
             }
-          });
+          }
+
+          // Check for our custom fields
+          final customFields = ["custom_mobile_no", "custom_vehical_number"];
+          for (final field in customFields) {
+            if (firstTicket.containsKey(field)) {
+              print("  ✓ $field: ${firstTicket[field]}");
+            } else {
+              print("  ✗ $field: NOT FOUND");
+            }
+          }
         }
 
         return issues;
       } else {
-        print("[IssueService] get_list failed: ${response.body}");
-        throw Exception("get_list failed: ${response.statusCode}");
+        print("[IssueService] get_list failed: ${response.statusCode}");
+        // Don't throw, return empty and try next method
+        return [];
       }
     } catch (e) {
       print("[IssueService] Error in get_list: $e");
-      rethrow;
+      return [];
     }
   }
 
@@ -155,13 +172,14 @@ class IssueService {
     try {
       print("[IssueService] Using direct resource API with expanded fields");
 
-      // Use ALL fields you need
+
       final fields = [
         "name", "subject", "status", "priority", "description",
         "creation", "modified", "raised_by",
-        "customer", "customer_name", "contact_mobile", "mobile_no",
-        "vehicle_number", "issue_type", "resolution_details",
-        "assigned_to", "opened_by", "contact_email"
+        "customer", "customer_name",
+        "custom_mobile_no",
+        "custom_vehical_number",
+        "issue_type", "resolution_details"
       ];
 
       String url = "$baseUrl/api/resource/Issue";
@@ -182,7 +200,7 @@ class IssueService {
       }
 
       if (mobileNumber.isNotEmpty) {
-        filters.add(["contact_mobile", "=", mobileNumber]);
+        filters.add(["custom_mobile_no", "=", mobileNumber]);
       }
 
       if (email.isNotEmpty && email.contains("@")) {
@@ -223,38 +241,53 @@ class IssueService {
 
         // Debug: Print first issue fields
         if (issues.isNotEmpty) {
-          print("[IssueService] First issue fields:");
-          issues[0].forEach((key, value) {
-            if (value != null) {
-              print("  $key: $value");
+          print("[IssueService] Checking for fields:");
+          final firstTicket = issues[0] as Map<String, dynamic>;
+
+          // Check description
+          if (firstTicket.containsKey("description") && firstTicket["description"] != null) {
+            final desc = firstTicket["description"].toString();
+            print("  ✓ description: ${desc.length} chars");
+          }
+
+          // Check custom fields
+          final customFields = ["custom_mobile_no", "custom_vehical_number"];
+          for (final field in customFields) {
+            if (firstTicket.containsKey(field)) {
+              print("  ✓ $field: ${firstTicket[field]}");
+            } else {
+              print("  ✗ $field: NOT FOUND");
             }
-          });
+          }
         }
 
         return issues;
       } else {
-        print("[IssueService] Resource API failed: ${response.body}");
+        print("[IssueService] Resource API failed: ${response.statusCode}");
 
         // If 417 error (field permission), try with fewer fields
         if (response.statusCode == 417) {
           return await _fetchWithMinimalFields(sid, customerName, mobileNumber, email);
         }
 
-        throw Exception("Failed to fetch issues: ${response.statusCode}");
+        return [];
       }
     } catch (e) {
       print("[IssueService] Error in resource API: $e");
-      rethrow;
+      return [];
     }
   }
 
-  /// METHOD 3: Fallback with minimal fields
+  /// METHOD 3: Fallback with minimal fields - KEEPING description for images
   static Future<List<dynamic>> _fetchWithMinimalFields(String sid, String customerName, String mobileNumber, String email) async {
     try {
       print("[IssueService] Trying with fallback fields");
 
-      // Try with just essential fields
-      final fields = ["name", "subject", "status", "creation", "customer", "raised_by"];
+      final fields = [
+        "name", "subject", "status", "creation",
+        "customer", "raised_by", "description",
+        "custom_vehical_number"
+      ];
 
       String url = "$baseUrl/api/resource/Issue";
       final params = {
@@ -272,7 +305,6 @@ class IssueService {
       }
 
       if (filterOptions.isNotEmpty) {
-        // Try each filter option
         for (final filter in filterOptions) {
           try {
             final tempParams = Map<String, String>.from(params);
@@ -295,6 +327,19 @@ class IssueService {
 
               if (issues.isNotEmpty) {
                 print("[IssueService] Found ${issues.length} issues with filter: $filter");
+
+                if (issues.isNotEmpty) {
+                  final firstTicket = issues[0] as Map<String, dynamic>;
+
+                  if (firstTicket.containsKey("description") && firstTicket["description"] != null) {
+                    print("[IssueService] ✓ description found in fallback: ${firstTicket["description"].toString().length} chars");
+                  }
+
+                  if (firstTicket.containsKey("custom_vehical_number")) {
+                    print("[IssueService] ✓ custom_vehical_number found in fallback: ${firstTicket["custom_vehical_number"]}");
+                  }
+                }
+
                 return issues;
               }
             }
@@ -304,7 +349,6 @@ class IssueService {
         }
       }
 
-      // If no filters worked or no filters, try without filter
       final uri = Uri.parse(url).replace(queryParameters: params);
       final response = await http.get(
         uri,
@@ -324,66 +368,6 @@ class IssueService {
       return [];
     } catch (e) {
       print("[IssueService] Error in fallback: $e");
-      return [];
-    }
-  }
-
-  /// METHOD 4: Try your custom endpoint
-  static Future<List<dynamic>> fetchUsingCustomEndpoint() async {
-    try {
-      print("[IssueService] Trying custom get_tickets endpoint");
-
-      final session = await SessionManager.getCustomerSession();
-      if (session == null || session["sid"] == null) {
-        throw Exception("Not authenticated");
-      }
-
-      final sid = session["sid"];
-
-      final response = await http.get(
-        Uri.parse("$baseUrl/api/method/telemko_support.api.get_tickets"),
-        headers: {
-          "Content-Type": "application/json",
-          "Cookie": "sid=$sid",
-        },
-      );
-
-      print("[IssueService] Custom endpoint response: ${response.statusCode}");
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final message = data["message"];
-
-        if (message is List) {
-          print("[IssueService] Custom endpoint returned ${message.length} tickets");
-
-          // Ensure all tickets have the required fields
-          final processedTickets = message.map((ticket) {
-            // Convert to Map if it's not already
-            if (ticket is Map) {
-              return ticket;
-            } else {
-              // Create a basic ticket structure
-              return {
-                "name": ticket.toString(),
-                "subject": "Ticket",
-                "status": "Open",
-                "creation": DateTime.now().toIso8601String(),
-              };
-            }
-          }).toList();
-
-          return processedTickets;
-        } else {
-          print("[IssueService] Custom endpoint returned non-list: $message");
-          return [];
-        }
-      } else {
-        print("[IssueService] Custom endpoint failed: ${response.body}");
-        return [];
-      }
-    } catch (e) {
-      print("[IssueService] Error in custom endpoint: $e");
       return [];
     }
   }

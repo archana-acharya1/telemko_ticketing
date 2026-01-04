@@ -121,98 +121,117 @@ class CustomerService {
     return response.statusCode == 200;
   }
 
-  /// Login with OTP
+
   static Future<Map<String, dynamic>?> loginWithOtp(
-    String mobileNo,
-    String otp,
-  ) async {
-    print("[CustomerService] Attempting OTP login for mobile: $mobileNo");
-    
+      String mobileNo,
+      String otp,
+      ) async {
+    print("[CustomerService] ===== OTP LOGIN START =====");
+    print("[CustomerService] Mobile: $mobileNo");
+
     final url = Uri.parse(
       "$baseUrl/api/method/telemko_support.api.custom_mobile_login.mobile_login",
     );
-    print("[CustomerService] OTP Login URL: $url");
 
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"mobile_no": mobileNo, "otp": otp}),
-    );
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"mobile_no": mobileNo, "otp": otp}),
+      );
 
-    print("[CustomerService] OTP login response status: ${response.statusCode}");
-    print("[CustomerService] OTP login response headers: ${response.headers}");
-    print("[CustomerService] OTP login response body: ${response.body}");
+      print("[CustomerService] Response Status: ${response.statusCode}");
+      print("[CustomerService] Response Body: ${response.body}");
 
-    if (response.statusCode == 200) {
-      String? sid;
-      
-      try {
+      if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final message = data["message"];
-        
-        // Try to get SID from response body first (custom endpoint might return it here)
-        if (message is Map<String, dynamic> && message["sid"] != null) {
-          sid = message["sid"] as String;
-          print("[CustomerService] SID found in response body: $sid");
-        }
-      } catch (e) {
-        print("[CustomerService] Error parsing OTP response body: $e");
-      }
+        final message = data["message"] ?? {};
 
-      // If SID not in body, try to extract from Set-Cookie header
-      if (sid == null || sid.isEmpty) {
-        final setCookie = response.headers["set-cookie"] ?? response.headers["Set-Cookie"];
-        print("[CustomerService] Set-Cookie header: $setCookie");
-        
-        if (setCookie != null && setCookie.isNotEmpty) {
-          final cookieStrings = setCookie.split(',');
-          for (final cookieStr in cookieStrings) {
-            final trimmed = cookieStr.trim();
-            final match = RegExp(r"sid=([^;\s,]+)").firstMatch(trimmed);
-            if (match != null) {
-              final extractedSid = match.group(1)?.trim();
-              if (extractedSid != null && extractedSid.isNotEmpty && extractedSid != "Logged In") {
-                sid = extractedSid;
-                print("[CustomerService] SID extracted from cookie: $sid");
-                break;
-              }
-            }
+        // Debug: Print all available fields
+        print("[CustomerService] Available fields in response:");
+        message.forEach((key, value) {
+          print("  $key: $value");
+        });
+
+        String? sid;
+
+        // Get SID from message
+        if (message["sid"] != null) {
+          sid = message["sid"].toString();
+          print("[CustomerService] ✅ SID from message field: $sid");
+        }
+
+        // Also check cookie header as backup
+        if (sid == null || sid.isEmpty) {
+          final cookies = response.headers["set-cookie"] ?? "";
+          print("[CustomerService] Cookie header: $cookies");
+
+          final match = RegExp(r"sid=([^;]+)").firstMatch(cookies);
+          if (match != null) {
+            sid = match.group(1);
+            print("[CustomerService] ✅ SID from cookie: $sid");
           }
         }
-      }
 
-      if (sid != null && sid.isNotEmpty && sid != "Logged In") {
-        // Parse response body to get user details
-        Map<String, dynamic> userDetails = {};
-        try {
-          final data = jsonDecode(response.body);
-          final message = data["message"];
-          if (message is Map<String, dynamic>) {
-            userDetails = message;
+        if (sid != null && sid.isNotEmpty && sid != "Logged In" && sid.length > 10) {
+          // Extract user details with fallbacks
+          String customerName = message["customer_name"]?.toString() ??
+              message["full_name"]?.toString() ??
+              message["user"]?.toString() ??
+              "Customer ($mobileNo)";
+
+          String mobile = message["mobile_no"]?.toString() ??
+              message["mobile"]?.toString() ??
+              mobileNo;
+
+          String email = message["email_id"]?.toString() ??
+              message["email"]?.toString() ??
+              "$mobileNo@telemko.com";
+
+          print("[CustomerService] 📝 Extracted user info:");
+          print("  - Name: $customerName");
+          print("  - Mobile: $mobile");
+          print("  - Email: $email");
+
+          // IMPORTANT: Save session to SharedPreferences
+          await SessionManager.saveCustomerSession(
+            customerName: customerName,
+            mobileNo: mobile,
+            emailId: email,
+            sid: sid,
+            loginType: "otp",
+          );
+
+          // Verify session was saved
+          final savedSid = await SessionManager.getSid();
+          if (savedSid == sid) {
+            print("[CustomerService] ✅ Session saved successfully to SharedPreferences");
+          } else {
+            print("[CustomerService] ⚠️ Session might not be saved properly");
           }
-        } catch (e) {
-          print("[CustomerService] Error parsing user details: $e");
+
+          print("[CustomerService] ===== OTP LOGIN SUCCESS =====");
+          return {
+            "sid": sid,
+            "customer_name": customerName,
+            "mobile_no": mobile,
+            "email_id": email,
+            ...message,
+          };
+        } else {
+          print("[CustomerService] ❌ Invalid SID: '$sid'");
+          print("[CustomerService] ===== OTP LOGIN FAILED =====");
+          return null;
         }
-        
-        // Save session
-        await SessionManager.saveCustomerSession(
-          customerName: userDetails["customer_name"] ?? userDetails["full_name"] ?? "",
-          mobileNo: userDetails["mobile_no"] ?? userDetails["mobile"] ?? mobileNo,
-          emailId: userDetails["email_id"] ?? userDetails["email"] ?? "",
-          sid: sid,
-          loginType: "otp",
-        );
-        
-        print("[CustomerService] OTP login successful. SID: $sid");
-        return userDetails.isNotEmpty ? userDetails : {"sid": sid};
       } else {
-        print("[CustomerService] OTP login failed: No valid SID found in response. SID value: $sid");
+        print("[CustomerService] ❌ API Error: ${response.statusCode}");
+        print("[CustomerService] ===== OTP LOGIN FAILED =====");
+        return null;
       }
-    } else {
-      print("[CustomerService] OTP login failed with status: ${response.statusCode}");
-      print("[CustomerService] Response body: ${response.body}");
+    } catch (e) {
+      print("[CustomerService] ❌ Exception: $e");
+      print("[CustomerService] ===== OTP LOGIN FAILED =====");
+      return null;
     }
-    
-    return null;
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../../data/api/api_client.dart';
 
@@ -25,6 +27,43 @@ class SessionManager {
     ApiClient.setSid(sid);
 
     print("[SessionManager] Session saved: SID=$sid, Name=$customerName, Mobile=$mobileNo");
+  }
+
+  // Add this method to SessionManager class
+  static Future<void> debugSession() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    print("🔍 === SESSION DEBUG ===");
+    print("customer_name: ${prefs.getString(_keyCustomerName)}");
+    print("mobile_no: ${prefs.getString(_keyMobileNo)}");
+    print("email_id: ${prefs.getString(_keyEmailId)}");
+    final sid = prefs.getString(_keySid);
+    print("sid: ${sid != null ? '${sid.substring(0, 20)}... (length: ${sid.length})' : 'null'}");
+    print("login_type: ${prefs.getString(_keyLoginType)}");
+    print("========================");
+  }
+
+  // Add this method to your SessionManager class:
+
+  static Future<void> printSessionDebugInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    print("🔍 === SESSION DEBUG INFO ===");
+    print("SharedPreferences keys:");
+    final keys = prefs.getKeys();
+    keys.forEach((key) {
+      final value = prefs.get(key);
+      print("  $key: ${value.toString().substring(0, min(50, value.toString().length))}...");
+    });
+
+    final sid = prefs.getString(_keySid);
+    print("\nSID Analysis:");
+    print("  - Exists: ${sid != null}");
+    print("  - Length: ${sid?.length ?? 0}");
+    print("  - Value preview: ${sid?.substring(0, min(30, sid?.length ?? 0))}...");
+    print("  - Looks valid: ${sid != null && sid.length > 10 && sid != "Logged In"}");
+
+    print("=============================");
   }
 
   static Future<String?> getSid() async {

@@ -3,6 +3,7 @@ import 'package:telemko_support/presentation/screens/tickets/ticket_form_screen.
 import '../../../services/issue_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/app_button.dart';
+import '../auth/login_screen.dart';
 import '../dashboard/lib/data/local/session_manager.dart';
 
 class TicketHistoryScreen extends StatefulWidget {
@@ -25,6 +26,27 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
   }
 
   Future<void> _loadTickets() async {
+    print("🎫 Loading tickets - Checking session...");
+    await SessionManager.printSessionDebugInfo();
+
+    final session = await SessionManager.getCustomerSession();
+    if (session == null || session["sid"] == null) {
+      print("❌ No valid session found. Redirecting to login...");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Session expired. Please login again.")),
+        );
+
+        // Navigate back to login
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+        );
+      }
+      return;
+    }
     if (!isRefreshing) {
       setState(() {
         isLoading = true;
@@ -33,17 +55,46 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
     }
 
     try {
-      // Fetch tickets with customer details
+
+      final session = await SessionManager.getCustomerSession();
+      print("[TicketHistoryScreen] Current session: ${session?.toString()}");
+      print("[TicketHistoryScreen] SID from SessionManager: ${await SessionManager.getSid()}");
+      // Fetch tickets with ALL fields including custom_vehical_number
       final fetchedTickets = await IssueService.fetchMyIssues();
 
       // DEBUG: Print what fields are available
       if (fetchedTickets.isNotEmpty) {
-        print("[TicketHistoryScreen] First ticket has these fields:");
-        fetchedTickets[0].forEach((key, value) {
-          if (value != null && value.toString().isNotEmpty) {
-            print("  $key: $value");
+        print("[TicketHistoryScreen] === DEBUG ALL TICKET FIELDS ===");
+        for (int i = 0; i < fetchedTickets.length && i < 5; i++) {
+          final ticket = fetchedTickets[i] as Map<String, dynamic>;
+          print("\n[TicketHistoryScreen] Ticket #${i + 1} - ID: ${ticket["name"]}");
+
+          // Check forw ALL fields including custom ones
+          final customFields = [
+            "custom_mobile_no",
+            "custom_vehical_number",
+            "mobile_no",
+            "contact_mobile",
+            "vehicle_number",
+            "raised_by",
+            "customer",
+            "customer_name"
+          ];
+
+          for (final field in customFields) {
+            if (ticket.containsKey(field)) {
+              final value = ticket[field];
+              print("  $field: ${value ?? "NULL"} (Type: ${value?.runtimeType})");
+            } else {
+              print("  $field: NOT IN TICKET");
+            }
           }
-        });
+
+          // Test extraction
+          print("  Test Mobile: ${_extractMobileNumber(ticket)}");
+          print("  Test Vehicle: ${_extractVehicleNumber(ticket)}");
+        }
+        print("[TicketHistoryScreen] ===============================");
       }
 
       // Ensure sorting by creation date (newest first)
@@ -95,6 +146,128 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
     }
   }
 
+  // NEW: Improved mobile number extraction
+  String _extractMobileNumber(Map<String, dynamic> ticket) {
+    // Priority 1: Check custom_mobile_no (main field from form)
+    if (ticket.containsKey("custom_mobile_no") &&
+        ticket["custom_mobile_no"] != null &&
+        ticket["custom_mobile_no"].toString().trim().isNotEmpty) {
+      final value = ticket["custom_mobile_no"].toString().trim();
+      print("[Mobile Extraction] Found in custom_mobile_no: $value");
+      return value;
+    }
+
+    // Priority 2: Check mobile_no (alternative field)
+    if (ticket.containsKey("mobile_no") &&
+        ticket["mobile_no"] != null &&
+        ticket["mobile_no"].toString().trim().isNotEmpty) {
+      final value = ticket["mobile_no"].toString().trim();
+      print("[Mobile Extraction] Found in mobile_no: $value");
+      return value;
+    }
+
+    // Priority 3: Check contact_mobile
+    if (ticket.containsKey("contact_mobile") &&
+        ticket["contact_mobile"] != null &&
+        ticket["contact_mobile"].toString().trim().isNotEmpty) {
+      final value = ticket["contact_mobile"].toString().trim();
+      print("[Mobile Extraction] Found in contact_mobile: $value");
+      return value;
+    }
+
+    // Priority 4: Check if raised_by is a phone number
+    if (ticket.containsKey("raised_by") &&
+        ticket["raised_by"] != null) {
+      final value = ticket["raised_by"].toString().trim();
+      if (_isPhoneNumber(value)) {
+        print("[Mobile Extraction] Using raised_by as phone: $value");
+        return value;
+      }
+    }
+
+    // Priority 5: Check all fields that might contain phone number
+    final phoneKeywords = ['phone', 'mobile', 'contact'];
+    for (final key in ticket.keys) {
+      if (phoneKeywords.any((keyword) => key.toLowerCase().contains(keyword))) {
+        if (ticket[key] != null && ticket[key].toString().trim().isNotEmpty) {
+          final value = ticket[key].toString().trim();
+          print("[Mobile Extraction] Found in $key: $value");
+          return value;
+        }
+      }
+    }
+
+    print("[Mobile Extraction] No mobile number found");
+    return "Not specified";
+  }
+
+  // NEW: Improved vehicle number extraction
+  String _extractVehicleNumber(Map<String, dynamic> ticket) {
+    // Priority 1: Check custom_vehical_number (note spelling: vehical not vehicle)
+    if (ticket.containsKey("custom_vehical_number") &&
+        ticket["custom_vehical_number"] != null &&
+        ticket["custom_vehical_number"].toString().trim().isNotEmpty) {
+      final value = ticket["custom_vehical_number"].toString().trim();
+      print("[Vehicle Extraction] Found in custom_vehical_number: $value");
+      return value;
+    }
+
+    // Priority 2: Check custom_vehicle_number (correct spelling)
+    if (ticket.containsKey("custom_vehicle_number") &&
+        ticket["custom_vehicle_number"] != null &&
+        ticket["custom_vehicle_number"].toString().trim().isNotEmpty) {
+      final value = ticket["custom_vehicle_number"].toString().trim();
+      print("[Vehicle Extraction] Found in custom_vehicle_number: $value");
+      return value;
+    }
+
+    // Priority 3: Check vehicle_number
+    if (ticket.containsKey("vehicle_number") &&
+        ticket["vehicle_number"] != null &&
+        ticket["vehicle_number"].toString().trim().isNotEmpty) {
+      final value = ticket["vehicle_number"].toString().trim();
+      print("[Vehicle Extraction] Found in vehicle_number: $value");
+      return value;
+    }
+
+    // Priority 4: Check vehical_number (typo)
+    if (ticket.containsKey("vehical_number") &&
+        ticket["vehical_number"] != null &&
+        ticket["vehical_number"].toString().trim().isNotEmpty) {
+      final value = ticket["vehical_number"].toString().trim();
+      print("[Vehicle Extraction] Found in vehical_number: $value");
+      return value;
+    }
+
+    // Priority 5: Check all fields that might contain vehicle number
+    final vehicleKeywords = ['vehicle', 'vehical', 'registration', 'plate', 'reg'];
+    for (final key in ticket.keys) {
+      if (vehicleKeywords.any((keyword) => key.toLowerCase().contains(keyword))) {
+        if (ticket[key] != null && ticket[key].toString().trim().isNotEmpty) {
+          final value = ticket[key].toString().trim();
+          print("[Vehicle Extraction] Found in $key: $value");
+          return value;
+        }
+      }
+    }
+
+    // Priority 6: Check description for vehicle pattern
+    if (ticket.containsKey("description") && ticket["description"] != null) {
+      final description = ticket["description"].toString();
+      // Look for vehicle number patterns like MH12AB1234, DL01CD5678
+      final vehiclePattern = RegExp(r'[A-Z]{2}\s?\d{1,2}\s?[A-Z]{1,2}\s?\d{4}');
+      final match = vehiclePattern.firstMatch(description);
+      if (match != null) {
+        final value = match.group(0)!;
+        print("[Vehicle Extraction] Found in description: $value");
+        return value;
+      }
+    }
+
+    print("[Vehicle Extraction] No vehicle number found");
+    return "Not specified";
+  }
+
   // Format date nicely
   String _formatDate(dynamic date) {
     if (date == null) return "Unknown date";
@@ -144,47 +317,86 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
     }
   }
 
+  // Helper to extract image URLs from HTML description
+  List<String> _extractImageUrls(String html) {
+    List<String> urls = [];
+    try {
+      // Simple regex to find img tags
+      final regex = RegExp(r'<img[^>]+src="([^">]+)"', caseSensitive: false);
+      final matches = regex.allMatches(html);
+
+      for (var match in matches) {
+        if (match.groupCount >= 1) {
+          final url = match.group(1);
+          if (url != null && url.isNotEmpty && (url.contains('http') || url.contains('/files/'))) {
+            // Make sure URL is absolute
+            String fullUrl = url;
+            if (url.startsWith('/files/')) {
+              fullUrl = 'http://erp.telemko.com$url';
+            }
+            urls.add(fullUrl);
+          }
+        }
+      }
+      print("[TicketHistoryScreen] Found ${urls.length} images in description");
+    } catch (e) {
+      print("[TicketHistoryScreen] Error extracting images: $e");
+    }
+    return urls;
+  }
+
+  // Clean HTML tags for text display
+  String _cleanDescriptionText(String html) {
+    try {
+      // Simple regex to remove HTML tags
+      return html
+          .replaceAll(RegExp(r'<[^>]*>'), '')
+          .replaceAll('&nbsp;', ' ')
+          .replaceAll('&amp;', '&')
+          .trim();
+    } catch (e) {
+      return html;
+    }
+  }
+
+  // Check if string is a phone number
+  bool _isPhoneNumber(String str) {
+    if (str.isEmpty) return false;
+    // Remove all non-digit characters
+    final digitsOnly = str.replaceAll(RegExp(r'[^0-9]'), '');
+    // Check if it's 10-15 digits (reasonable phone number length)
+    return digitsOnly.length >= 10 && digitsOnly.length <= 15;
+  }
+
   // Build the ticket card with all customer details
   Widget _buildTicketCard(Map<String, dynamic> ticket, int index) {
-    // DEBUG: Print all available fields
-    print("[TicketHistoryScreen] Ticket ${ticket["name"]} fields:");
-    ticket.forEach((key, value) {
-      if (value != null && value.toString().isNotEmpty) {
-        print("  $key: $value");
-      }
-    });
-
     final status = ticket["status"]?.toString() ?? "Open";
     final priority = ticket["priority"]?.toString() ?? "Medium";
     final subject = ticket["subject"] ?? "No Subject";
-    final description = ticket["description"] ?? "No description";
+    final description = ticket["description"] ?? "";
     final creationDate = _formatDate(ticket["creation"]);
     final ticketId = ticket["name"] ?? "N/A";
 
-    // FIXED: Extract customer details with multiple field name attempts
-    // Try different possible field names for customer
+    // Extract customer details using improved methods
     final customerName = ticket["customer"]?.toString() ??
         ticket["customer_name"]?.toString() ??
         ticket["raised_by"]?.toString() ??
-        ticket["opened_by"]?.toString() ??
         "Not specified";
 
-    // Try different possible field names for mobile
-    final customerMobile = ticket["contact_mobile"]?.toString() ??
-        ticket["mobile_no"]?.toString() ??
-        ticket["mobile"]?.toString() ??
-        ticket["phone"]?.toString() ??
-        "Not specified";
+    // Use the new extraction methods
+    final customerMobile = _extractMobileNumber(ticket);
+    final vehicleNumber = _extractVehicleNumber(ticket);
+    final issueType = ticket["issue_type"]?.toString() ?? "General";
 
-    // Try different possible field names for vehicle
-    final vehicleNumber = ticket["vehicle_number"]?.toString() ??
-        ticket["vehicle"]?.toString() ??
-        ticket["vehicle_no"]?.toString() ??
-        "Not specified";
+    // Extract images from description
+    final imageUrls = _extractImageUrls(description);
+    final hasImages = imageUrls.isNotEmpty;
 
-    final issueType = ticket["issue_type"]?.toString() ??
-        ticket["type"]?.toString() ??
-        "General";
+    // Clean description for text preview
+    final cleanDescription = _cleanDescriptionText(description);
+    final descriptionPreview = cleanDescription.length > 100
+        ? "${cleanDescription.substring(0, 100)}..."
+        : cleanDescription;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -310,7 +522,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
 
                     const SizedBox(height: 6),
 
-                    // Mobile Number
+                    // Mobile Number (extracted using improved method)
                     _buildDetailRow(
                       icon: Icons.phone,
                       label: "Mobile",
@@ -319,10 +531,10 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
 
                     const SizedBox(height: 6),
 
-                    // Vehicle Number
+                    // Vehicle Number (extracted using improved method)
                     _buildDetailRow(
                       icon: Icons.directions_car,
-                      label: "Vehicle",
+                      label: "Vehicle No.",
                       value: vehicleNumber,
                     ),
 
@@ -340,8 +552,35 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
 
               const SizedBox(height: 12),
 
+              // Image preview indicator
+              if (hasImages)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.green[100]!),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.image, size: 14, color: Colors.green),
+                      const SizedBox(width: 6),
+                      Text(
+                        "${imageUrls.length} image(s)",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // Description Preview
-              if (description.isNotEmpty)
+              if (descriptionPreview.isNotEmpty)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -355,9 +594,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      description.length > 100
-                          ? "${description.substring(0, 100)}..."
-                          : description,
+                      descriptionPreview,
                       style: const TextStyle(
                         fontSize: 13,
                         color: Colors.black87,
@@ -453,16 +690,14 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
         ticket["raised_by"]?.toString() ??
         "Not specified";
 
-    final customerMobile = ticket["contact_mobile"]?.toString() ??
-        ticket["mobile_no"]?.toString() ??
-        "Not specified";
+    // Use improved extraction methods
+    final customerMobile = _extractMobileNumber(ticket);
+    final vehicleNumber = _extractVehicleNumber(ticket);
+    final customerEmail = ticket["raised_by"]?.toString() ?? "Not specified";
 
-    final vehicleNumber = ticket["vehicle_number"]?.toString() ??
-        "Not specified";
-
-    final customerEmail = ticket["contact_email"]?.toString() ??
-        ticket["raised_by"]?.toString() ??
-        "Not specified";
+    final description = ticket["description"]?.toString() ?? "";
+    final imageUrls = _extractImageUrls(description);
+    final cleanDescription = _cleanDescriptionText(description);
 
     showModalBottomSheet(
       context: context,
@@ -470,11 +705,20 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => _buildTicketDetailsSheet(ticket, customerName, customerMobile, vehicleNumber, customerEmail),
+      builder: (context) => _buildTicketDetailsSheet(ticket, customerName, customerMobile, vehicleNumber, customerEmail, description, imageUrls, cleanDescription),
     );
   }
 
-  Widget _buildTicketDetailsSheet(Map<String, dynamic> ticket, String customerName, String customerMobile, String vehicleNumber, String customerEmail) {
+  Widget _buildTicketDetailsSheet(
+      Map<String, dynamic> ticket,
+      String customerName,
+      String customerMobile,
+      String vehicleNumber,
+      String customerEmail,
+      String description,
+      List<String> imageUrls,
+      String cleanDescription
+      ) {
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
       minChildSize: 0.5,
@@ -564,12 +808,10 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              _buildDetailCardRow("Name", customerName),
-                              _buildDetailCardRow("Mobile", customerMobile),
+                              _buildDetailCardRow("Customer Name", customerName),
+                              _buildDetailCardRow("Mobile Number", customerMobile),
                               _buildDetailCardRow("Email", customerEmail),
-                              _buildDetailCardRow("Vehicle", vehicleNumber),
-                              if (ticket["vehicle_model"] != null)
-                                _buildDetailCardRow("Vehicle Model", ticket["vehicle_model"]),
+                              _buildDetailCardRow("Vehicle Number", vehicleNumber),
                             ],
                           ),
                         ),
@@ -597,16 +839,84 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
                               _buildDetailCardRow("Type", ticket["issue_type"] ?? "General"),
                               _buildDetailCardRow("Priority", ticket["priority"] ?? "Medium"),
                               _buildDetailCardRow("Status", ticket["status"] ?? "Open"),
-                              if (ticket["assigned_to"] != null)
-                                _buildDetailCardRow("Assigned To", ticket["assigned_to"]),
-                              if (ticket["branch"] != null)
-                                _buildDetailCardRow("Branch", ticket["branch"]),
+                              if (ticket["resolution_details"] != null && ticket["resolution_details"].toString().isNotEmpty)
+                                _buildDetailCardRow("Resolution Details", ticket["resolution_details"].toString()),
                             ],
                           ),
                         ),
                       ),
 
                       const SizedBox(height: 16),
+
+                      // Attachments Card (if any images found)
+                      if (imageUrls.isNotEmpty)
+                        Column(
+                          children: [
+                            Card(
+                              elevation: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Attachments",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      height: 150,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: imageUrls.length,
+                                        itemBuilder: (context, index) {
+                                          return Container(
+                                            margin: const EdgeInsets.only(right: 12),
+                                            width: 200,
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.grey[300]!),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: Image.network(
+                                                imageUrls[index],
+                                                fit: BoxFit.cover,
+                                                loadingBuilder: (context, child, loadingProgress) {
+                                                  if (loadingProgress == null) return child;
+                                                  return Center(
+                                                    child: CircularProgressIndicator(
+                                                      value: loadingProgress.expectedTotalBytes != null
+                                                          ? loadingProgress.cumulativeBytesLoaded /
+                                                          loadingProgress.expectedTotalBytes!
+                                                          : null,
+                                                    ),
+                                                  );
+                                                },
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Container(
+                                                    color: Colors.grey[200],
+                                                    child: const Center(
+                                                      child: Icon(Icons.broken_image, color: Colors.grey),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
 
                       // Description Card
                       Card(
@@ -624,50 +934,46 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              Text(
-                                ticket["description"] ?? "No description provided",
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  height: 1.5,
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (imageUrls.isNotEmpty)
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              "Text Description:",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.grey,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                        ),
+                                      Text(
+                                        cleanDescription.isNotEmpty ? cleanDescription : "No description provided",
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-
-                      if (ticket["resolution_details"] != null)
-                        Column(
-                          children: [
-                            const SizedBox(height: 16),
-                            Card(
-                              elevation: 2,
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      "Resolution",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      ticket["resolution_details"],
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        height: 1.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
 
                       const SizedBox(height: 40),
                     ],
