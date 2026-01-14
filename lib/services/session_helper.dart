@@ -19,7 +19,7 @@ class SessionHelper {
         sid: sid,
         loginType: 'password',
       );
-      print("✅ Password login session saved");
+      print(" Password login session saved");
     }
   }
 

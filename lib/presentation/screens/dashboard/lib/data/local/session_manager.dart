@@ -4,11 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../../data/api/api_client.dart';
 
 class SessionManager {
+
   static const _keyCustomerName = "customer_name";
   static const _keyMobileNo = "mobile_no";
   static const _keyEmailId = "email_id";
   static const _keySid = "sid";
   static const _keyLoginType = "login_type";
+
+  static String? _cachedSid;
 
   static Future<void> saveCustomerSession({
     required String customerName,
@@ -24,11 +27,71 @@ class SessionManager {
     await prefs.setString(_keySid, sid);
     await prefs.setString(_keyLoginType, loginType);
 
+    _cachedSid = sid;
     ApiClient.setSid(sid);
 
     print("[SessionManager] Session saved: SID=$sid, Name=$customerName, Mobile=$mobileNo");
   }
 
+
+
+  static Future<String?> getSid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sid = prefs.getString(_keySid);
+
+    if (sid != null && sid.isNotEmpty) {
+      _cachedSid = sid;
+      ApiClient.setSid(sid);
+      print("[SessionManager] SID loaded: $sid");
+      return sid;
+    }
+
+    _cachedSid = null;
+    print("[SessionManager] No SID found");
+    return null;
+  }
+
+  static bool isLoggedIn() {
+    return _cachedSid != null && _cachedSid!.isNotEmpty;
+  }
+
+
+  static Future<Map<String, dynamic>?> getCustomerSession() async {
+
+    if (!isLoggedIn()) {
+      print("[SessionManager] getCustomerSession: Not logged in");
+      return null;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+
+
+    // final sid = prefs.getString(_keySid);
+    // if (sid == null || sid.isEmpty) {
+    //   print("[SessionManager] getCustomerSession: SID missing");
+    //   return null;
+    // }
+
+    // ApiClient.setSid(sid);
+    // print("[SessionManager] getCustomerSession: SID=$sid");
+
+    return {
+      "customer_name": prefs.getString(_keyCustomerName) ?? "",
+      "mobile_no": prefs.getString(_keyMobileNo) ?? "",
+      "email_id": prefs.getString(_keyEmailId) ?? "",
+      "sid": _cachedSid,
+      "login_type": prefs.getString(_keyLoginType) ?? "",
+    };
+  }
+
+  static Future<void> clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    _cachedSid = null;
+    ApiClient.setSid(null);
+    print("[SessionManager] Session cleared");
+  }
   // Add this method to SessionManager class
   static Future<void> debugSession() async {
     final prefs = await SharedPreferences.getInstance();
@@ -42,8 +105,6 @@ class SessionManager {
     print("login_type: ${prefs.getString(_keyLoginType)}");
     print("========================");
   }
-
-  // Add this method to your SessionManager class:
 
   static Future<void> printSessionDebugInfo() async {
     final prefs = await SharedPreferences.getInstance();
@@ -64,44 +125,5 @@ class SessionManager {
     print("  - Looks valid: ${sid != null && sid.length > 10 && sid != "Logged In"}");
 
     print("=============================");
-  }
-
-  static Future<String?> getSid() async {
-    final prefs = await SharedPreferences.getInstance();
-    final sid = prefs.getString(_keySid);
-    if (sid != null && sid.isNotEmpty) {
-      ApiClient.setSid(sid);
-      print("[SessionManager] SID loaded: $sid");
-      return sid;
-    }
-    print("[SessionManager] No SID found");
-    return null;
-  }
-
-  static Future<Map<String, dynamic>?> getCustomerSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final sid = prefs.getString(_keySid);
-    if (sid == null || sid.isEmpty) {
-      print("[SessionManager] getCustomerSession: SID missing");
-      return null;
-    }
-
-    ApiClient.setSid(sid);
-    print("[SessionManager] getCustomerSession: SID=$sid");
-
-    return {
-      "customer_name": prefs.getString(_keyCustomerName) ?? "",
-      "mobile_no": prefs.getString(_keyMobileNo) ?? "",
-      "email_id": prefs.getString(_keyEmailId) ?? "",
-      "sid": sid,
-      "login_type": prefs.getString(_keyLoginType) ?? "",
-    };
-  }
-
-  static Future<void> clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    ApiClient.setSid(null);
-    print("[SessionManager] Session cleared");
   }
 }
