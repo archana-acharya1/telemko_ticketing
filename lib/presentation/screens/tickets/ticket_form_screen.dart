@@ -189,8 +189,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
   // ================== BUILD DESCRIPTION WITH IMAGES ==================
 
-  // ================== BUILD DESCRIPTION WITH IMAGES ==================
-
   String _buildDescriptionWithImages(String originalDescription, List<String> fileUrls) {
     if (fileUrls.isEmpty) return originalDescription;
 
@@ -215,7 +213,8 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
     return description;
   }
-  // ================== USER DATA FETCHING ==================
+
+  // ================== USER DATA FETCHING - UPDATED FIX ==================
 
   Future<void> _fetchUserInformation() async {
     setState(() {
@@ -224,239 +223,76 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     });
 
     try {
+      // Get session data - this works for BOTH login types
       final session = await SessionManager.getCustomerSession();
-      final sid = session?["sid"] ?? "";
+
+      if (session == null) {
+        throw Exception("No session found. Please login again.");
+      }
+
+      final sid = session["sid"] ?? "";
+      final loginType = session["login_type"] ?? "";
 
       if (sid.isEmpty) {
-        throw Exception("No active session found. Please login again.");
+        throw Exception("Session expired. Please login again.");
       }
 
-      final loggedUserUrl = Uri.parse("http://erp.telemko.com/api/method/frappe.auth.get_logged_user");
+      print("🔍 Login Type: $loginType");
+      print("📱 Session Data: Name=${session["customer_name"]}, Mobile=${session["mobile_no"]}, Email=${session["email_id"]}");
 
-      final loggedUserResponse = await http.get(
-        loggedUserUrl,
-        headers: {
-          "Content-Type": "application/json",
-          "Cookie": "sid=$sid",
-        },
-      );
+      // USE SESSION DATA DIRECTLY - Don't fetch from ERP
+      setState(() {
+        customerName = session["customer_name"] ?? "Customer";
+        mobileNumber = session["mobile_no"] ?? "";
+        customerEmail = session["email_id"] ?? "";
 
-      if (loggedUserResponse.statusCode == 200) {
-        final loggedUserData = jsonDecode(loggedUserResponse.body);
-        final username = loggedUserData["message"]?.toString() ?? "";
+        // Check if it's a phone login
+        isPhoneLogin = loginType == "otp" || loginType == "mobile" ||
+            (mobileNumber!.isNotEmpty && (customerEmail == null || customerEmail!.isEmpty));
 
-        if (username.isNotEmpty) {
-          final isPhoneNumber = RegExp(r'^[0-9]+$').hasMatch(username);
-          setState(() => isPhoneLogin = isPhoneNumber);
-
-          await _fetchUserDetails(sid, username, session, isPhoneNumber);
-        } else {
-          customerName = session?["customer_name"] ?? "";
-          customerEmail = session?["email"] ?? "";
-          mobileNumber = session?["mobile_no"] ?? "";
+        // If no email but we have mobile, create system email
+        if (isPhoneLogin && (customerEmail == null || customerEmail!.isEmpty)) {
+          if (mobileNumber!.isNotEmpty) {
+            customerEmail = "$mobileNumber@phoneuser.telemko.com";
+          } else {
+            customerEmail = "customer@telemko.com";
+          }
         }
-      } else {
-        customerName = session?["customer_name"] ?? "";
-        customerEmail = session?["email"] ?? "";
-        mobileNumber = session?["mobile_no"] ?? "";
-      }
-    } catch (e) {
-      print("[TicketFormScreen] Error fetching user info: $e");
-      errorMessage = "Failed to load user information";
+      });
 
-      final session = await SessionManager.getCustomerSession();
-      customerName = session?["customer_name"] ?? "";
-      customerEmail = session?["email"] ?? "";
-      mobileNumber = session?["mobile_no"] ?? "";
+      print("✅ Using customer data:");
+      print("   Name: $customerName");
+      print("   Mobile: $mobileNumber");
+      print("   Email: $customerEmail");
+      print("   Is Phone Login: $isPhoneLogin");
+
+    } catch (e) {
+      print("[TicketFormScreen] Error: $e");
+      setState(() {
+        errorMessage = "Failed to load user info";
+        customerName = "Customer";
+        customerEmail = "customer@telemko.com";
+        mobileNumber = "";
+        isPhoneLogin = true;
+      });
     } finally {
       setState(() => isFetchingUserInfo = false);
     }
   }
 
-  Future<void> _fetchUserDetails(String sid, String username, Map<String, dynamic>? session, bool isPhoneNumber) async {
-    try {
-      if (isPhoneNumber) {
-        await _fetchCustomerByMobile(sid, username, session);
-        return;
-      }
-
-      final userUrl = Uri.parse(
-          "http://erp.telemko.com/api/resource/User/$username"
-              "?fields=[\"email\", \"full_name\", \"mobile_no\"]"
-      );
-
-      final userResponse = await http.get(
-        userUrl,
-        headers: {
-          "Content-Type": "application/json",
-          "Cookie": "sid=$sid",
-        },
-      );
-
-      if (userResponse.statusCode == 200) {
-        final userData = jsonDecode(userResponse.body);
-        if (userData["data"] != null) {
-          final user = userData["data"];
-          setState(() {
-            customerEmail = user["email"]?.toString() ?? "";
-            customerName = user["full_name"]?.toString() ?? session?["customer_name"] ?? "";
-            mobileNumber = user["mobile_no"]?.toString() ?? session?["mobile_no"] ?? "";
-          });
-
-          if (customerEmail != null && customerEmail!.isNotEmpty && customerEmail!.contains("@")) {
-            await _fetchCustomerByEmail(sid, customerEmail!, session);
-          }
-          return;
-        }
-      }
-
-      await _fetchCustomerDetails(sid, username, session);
-    } catch (e) {
-      print("[TicketFormScreen] Error fetching user details: $e");
-      setState(() {
-        customerName = session?["customer_name"] ?? username;
-        customerEmail = session?["email"] ?? "";
-        mobileNumber = session?["mobile_no"] ?? "";
-      });
-    }
-  }
-
-  Future<void> _fetchCustomerByMobile(String sid, String mobileNumber, Map<String, dynamic>? session) async {
-    try {
-      print("[TicketFormScreen] Fetching customer by mobile: $mobileNumber");
-
-      final customerUrl = Uri.parse(
-          "http://erp.telemko.com/api/resource/Customer"
-              "?fields=[\"name\", \"customer_name\", \"mobile_no\", \"email_id\"]"
-              "&filters=[[\"mobile_no\", \"=\", \"$mobileNumber\"]]"
-              "&limit_page_length=1"
-      );
-
-      final customerResponse = await http.get(
-        customerUrl,
-        headers: {
-          "Content-Type": "application/json",
-          "Cookie": "sid=$sid",
-        },
-      );
-
-      if (customerResponse.statusCode == 200) {
-        final customerData = jsonDecode(customerResponse.body);
-        if (customerData["data"] != null && customerData["data"].isNotEmpty) {
-          final customer = customerData["data"][0];
-          setState(() {
-            customerName = customer["customer_name"]?.toString() ?? "";
-            this.mobileNumber = customer["mobile_no"]?.toString() ?? mobileNumber;
-            customerEmail = customer["email_id"]?.toString() ?? "";
-          });
-        } else {
-          setState(() {
-            customerName = session?["customer_name"] ?? "Customer";
-            customerEmail = "$mobileNumber@phoneuser.telemko.com";
-          });
-        }
-      } else {
-        setState(() {
-          customerName = session?["customer_name"] ?? "Customer";
-          customerEmail = "$mobileNumber@phoneuser.telemko.com";
-        });
-      }
-    } catch (e) {
-      print("[TicketFormScreen] Error fetching customer by mobile: $e");
-      setState(() {
-        customerName = session?["customer_name"] ?? "Customer";
-        customerEmail = "$mobileNumber@phoneuser.telemko.com";
-      });
-    }
-  }
-
-  Future<void> _fetchCustomerByEmail(String sid, String email, Map<String, dynamic>? session) async {
-    try {
-      final customerUrl = Uri.parse(
-          "http://erp.telemko.com/api/resource/Customer"
-              "?fields=[\"name\", \"customer_name\", \"mobile_no\", \"email_id\"]"
-              "&filters=[[\"email_id\", \"=\", \"$email\"]]"
-              "&limit_page_length=1"
-      );
-
-      final customerResponse = await http.get(
-        customerUrl,
-        headers: {
-          "Content-Type": "application/json",
-          "Cookie": "sid=$sid",
-        },
-      );
-
-      if (customerResponse.statusCode == 200) {
-        final customerData = jsonDecode(customerResponse.body);
-        if (customerData["data"] != null && customerData["data"].isNotEmpty) {
-          final customer = customerData["data"][0];
-          setState(() {
-            if (customer["customer_name"] != null && customer["customer_name"].toString().isNotEmpty) {
-              customerName = customer["customer_name"]?.toString() ?? customerName;
-            }
-            if (customer["mobile_no"] != null && customer["mobile_no"].toString().isNotEmpty) {
-              mobileNumber = customer["mobile_no"]?.toString() ?? mobileNumber;
-            }
-          });
-        }
-      }
-    } catch (e) {
-      print("[TicketFormScreen] Error fetching customer by email: $e");
-    }
-  }
-
-  Future<void> _fetchCustomerDetails(String sid, String username, Map<String, dynamic>? session) async {
-    try {
-      String filterField = username.contains("@") ? "email_id" : "customer_name";
-      String filterValue = username;
-
-      final customerUrl = Uri.parse(
-          "http://erp.telemko.com/api/resource/Customer"
-              "?fields=[\"name\", \"customer_name\", \"mobile_no\", \"email_id\"]"
-              "&filters=[[\"$filterField\", \"=\", \"$filterValue\"]]"
-              "&limit_page_length=1"
-      );
-
-      final customerResponse = await http.get(
-        customerUrl,
-        headers: {
-          "Content-Type": "application/json",
-          "Cookie": "sid=$sid",
-        },
-      );
-
-      if (customerResponse.statusCode == 200) {
-        final customerData = jsonDecode(customerResponse.body);
-        if (customerData["data"] != null && customerData["data"].isNotEmpty) {
-          final customer = customerData["data"][0];
-          setState(() {
-            customerName = customer["customer_name"]?.toString() ?? username;
-            mobileNumber = customer["mobile_no"]?.toString() ?? "";
-            customerEmail = customer["email_id"]?.toString() ?? "";
-          });
-          return;
-        }
-      }
-
-      setState(() {
-        customerName = session?["customer_name"] ?? username;
-        mobileNumber = session?["mobile_no"] ?? "";
-        customerEmail = session?["email"] ?? "";
-      });
-    } catch (e) {
-      print("[TicketFormScreen] Error fetching customer details: $e");
-      setState(() {
-        customerName = session?["customer_name"] ?? username;
-        mobileNumber = session?["mobile_no"] ?? "";
-        customerEmail = session?["email"] ?? "";
-      });
-    }
-  }
-
-  // ================== TICKET SUBMISSION ==================
+  // ================== TICKET SUBMISSION - UPDATED FIX ==================
 
   Future<void> submitTicket() async {
+    // DEBUG: Print session info before starting
+    print("🔍 === DEBUG BEFORE TICKET CREATION ===");
+    final session = await SessionManager.getCustomerSession();
+    print("Session: $session");
+    print("customerName: $customerName");
+    print("customerEmail: $customerEmail");
+    print("mobileNumber: $mobileNumber");
+    print("isPhoneLogin: $isPhoneLogin");
+    print("================================");
+
     final description = descriptionController.text.trim();
     final vehicleNumber = vehicleNumberController.text.trim();
 
@@ -470,9 +306,13 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       return;
     }
 
+    // Ensure we have email for phone users
     if (isPhoneLogin && (customerEmail == null || customerEmail!.isEmpty)) {
-      final phone = mobileNumber ?? "unknown";
-      customerEmail = "$phone@phoneuser.telemko.com";
+      if (mobileNumber != null && mobileNumber!.isNotEmpty) {
+        customerEmail = "$mobileNumber@phoneuser.telemko.com";
+      } else {
+        customerEmail = "customer@telemko.com";
+      }
     }
 
     setState(() => isLoading = true);
@@ -481,9 +321,25 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       final session = await SessionManager.getCustomerSession();
       final sid = session?["sid"] ?? "";
 
-      final loggedCustomerName = customerName ?? session?["customer_name"] ?? "Customer";
-      final loggedCustomerEmail = customerEmail ?? session?["email"] ?? "";
-      final loggedMobile = mobileNumber ?? session?["mobile_no"] ?? "";
+      // Use the data we already have from _fetchUserInformation()
+      final loggedCustomerName = customerName ?? "Customer";
+      final loggedCustomerEmail = customerEmail ?? "";
+      final loggedMobile = mobileNumber ?? "";
+
+      // Make SURE we have an email for phone users
+      if (isPhoneLogin && loggedCustomerEmail.isEmpty) {
+        if (loggedMobile.isNotEmpty) {
+          customerEmail = "$loggedMobile@phoneuser.telemko.com";
+        } else {
+          customerEmail = "customer@telemko.com";
+        }
+      }
+
+      print("🎫 Creating ticket with:");
+      print("   Customer: $loggedCustomerName");
+      print("   Email: $customerEmail");
+      print("   Mobile: $loggedMobile");
+      print("   Is Phone Login: $isPhoneLogin");
 
       if (sid.isEmpty) {
         throw Exception("No session found. Please login again.");
@@ -505,30 +361,35 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         finalDescription = _buildDescriptionWithImages(description, uploadedFileUrls);
       }
 
+      // TICKET DATA - FIXED FOR BOTH LOGIN TYPES
       final Map<String, dynamic> ticketData = {
         "subject": selectedSubject,
         "description": finalDescription, // This now contains HTML with embedded images
         "status": "Open",
       };
 
-      if (loggedCustomerName.isNotEmpty && loggedCustomerName != "Customer") {
-        ticketData["customer"] = loggedCustomerName;
-      } else if (loggedMobile.isNotEmpty) {
-        ticketData["customer"] = loggedMobile;
-      } else {
-        ticketData["customer"] = loggedCustomerEmail;
-      }
-
+      // ALWAYS include customer - use mobile number if name is generic
       if (loggedCustomerName.isNotEmpty) {
-        ticketData["customer_name"] = loggedCustomerName;
+        if (loggedCustomerName == "Customer" || loggedCustomerName.contains("Customer")) {
+          // For generic names, use mobile number format
+          if (loggedMobile.isNotEmpty) {
+            ticketData["customer"] = "Customer ($loggedMobile)";
+          } else {
+            ticketData["customer"] = loggedCustomerName;
+          }
+        } else {
+          ticketData["customer"] = loggedCustomerName;
+        }
       }
 
-      if (loggedCustomerEmail.isNotEmpty) {
-        ticketData["raised_by"] = loggedCustomerEmail;
+      // ALWAYS include raised_by
+      if (customerEmail != null && customerEmail!.isNotEmpty) {
+        ticketData["raised_by"] = customerEmail!;
       } else if (loggedMobile.isNotEmpty) {
         ticketData["raised_by"] = loggedMobile;
       }
 
+      // ALWAYS include mobile number
       if (loggedMobile.isNotEmpty) {
         ticketData["custom_mobile_no"] = loggedMobile;
       }
@@ -537,9 +398,9 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         ticketData["custom_vehical_number"] = vehicleNumber;
       }
 
-      final url = Uri.parse("http://erp.telemko.com/api/resource/Issue");
+      print("📤 Sending ticket data: $ticketData");
 
-      print("[TicketFormScreen] Creating ticket with embedded images...");
+      final url = Uri.parse("http://erp.telemko.com/api/resource/Issue");
 
       final response = await http.post(
         url,
@@ -551,6 +412,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       );
 
       print("[TicketFormScreen] Create ticket response: ${response.statusCode}");
+      print("[TicketFormScreen] Response body: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
@@ -561,38 +423,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         }
 
         print("[TicketFormScreen] Ticket created with ID: $ticketId");
-
-        // ========== STEP 3: ATTACH FILES TO TICKET (OPTIONAL - ALREADY IN DESCRIPTION) ==========
-        // You can still attach files properly to the Issue doctype if needed
-        if (uploadedFileUrls.isNotEmpty) {
-          // Optional: Link files to the ticket in Frappe's attachment system
-          for (var fileUrl in uploadedFileUrls) {
-            try {
-              final attachUrl = Uri.parse("http://erp.telemko.com/api/method/frappe.desk.form.save.add_attachments");
-
-              final attachResponse = await http.post(
-                attachUrl,
-                headers: {
-                  "Content-Type": "application/json",
-                  "Cookie": "sid=$sid",
-                },
-                body: jsonEncode({
-                  "docname": ticketId,
-                  "filename": fileUrl.split('/').last,
-                  "file_url": fileUrl,
-                  "doctype": "Issue",
-                }),
-              );
-
-              if (attachResponse.statusCode == 200) {
-                print("[TicketFormScreen] File attached to ticket: $fileUrl");
-              }
-            } catch (e) {
-              print("[TicketFormScreen] Error attaching file: $e");
-              // Continue even if attachment fails - images are already in description
-            }
-          }
-        }
 
         // ========== SHOW SUCCESS MESSAGE ==========
         String successMessage;
@@ -631,7 +461,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
       } else {
         final errorBody = response.body;
-        throw Exception("Failed to create ticket. Status: ${response.statusCode}");
+        throw Exception("Failed to create ticket. Status: ${response.statusCode}. Body: $errorBody");
       }
     } catch (e) {
       print("[TicketFormScreen] Error creating ticket: $e");
@@ -639,6 +469,8 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       String errorMsg = e.toString();
       if (errorMsg.contains("PermissionError") || errorMsg.contains("403")) {
         errorMsg = "Permission denied. Please check user permissions in Frappe.";
+      } else if (errorMsg.contains("customer")) {
+        errorMsg = "Customer field issue. Please check if user exists in ERP.";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -676,7 +508,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     );
   }
 
-  // ================== UI WIDGETS ==================
+  // ================== UI WIDGETS (UNCHANGED) ==================
 
   Widget _buildInfoField(String label, String? value) {
     return Column(

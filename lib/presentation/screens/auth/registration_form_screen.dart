@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:telemko_support/services/mobile_verification_service.dart';
+import 'package:telemko_support/presentation/screens/dashboard/lib/data/local/session_manager.dart';
 import 'package:telemko_support/presentation/screens/navbar/main_navbar.dart';
-import 'package:telemko_support/presentation/screens/auth/login_screen.dart';
+import 'package:telemko_support/services/mobile_verification_service.dart';
+import 'package:telemko_support/services/session_helper.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_constants.dart';
@@ -60,7 +61,8 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
           mobileNo: widget.mobile,
           otp: widget.verifiedOtp,
           customerName: _nameController.text.trim(),
-          emailId: fullEmail, // Use the constructed full email
+          emailId: fullEmail,
+          // Use the constructed full email
           vehicleNumber: _vehicleController.text.trim(),
           customerPrimaryAddress: _addressController.text.trim(),
         );
@@ -72,67 +74,66 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
         print(" Registration Result: ${result["success"]}");
         print(" Registration Message: ${result["message"]}");
 
-        if (result["success"] == true) {
-          // Check if auto-login was successful
-          if (result["auto_login"] == true && result["sid"] != null) {
-            print(" Registration + Auto-login successful! Navigating to main app...");
+        if (result["success"] == true && result["sid"] != null) {
+          await SessionManager.saveCustomerSession(
+            customerName: _nameController.text.trim(),
+            mobileNo: widget.mobile,
+            emailId: fullEmail,
+            sid: result["sid"],
+            loginType: "registration",
+          );
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result["message"] ?? "Registration successful!"),
-                backgroundColor: Colors.green,
-              ),
-            );
+          await SessionHelper.debugCurrentSession();
 
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const MainNavbar()),
-                  (route) => false,
-            );
-          } else {
-            print(" Registration successful! Navigating to login...");
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const MainNavbar()),
+                (route) => false,
+          );
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result["message"] ?? "Registration successful! Please login."),
-                backgroundColor: Colors.green,
-              ),
-            );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result["message"] ?? "Registration successful"),
+              backgroundColor: Colors.green,
+            ),
+          );
 
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-            );
-          }
-        } else {
-          // Check if it's actually a success disguised as failure
+          return;
+        }else{
           final errorMsg = result["message"]?.toString().toLowerCase() ?? "";
-
-          if (errorMsg.contains('already exists') || errorMsg.contains('duplicate')) {
+          
+          if (errorMsg.contains('already exists') || errorMsg.contains('duplicate')){
             final loginResult = await MobileVerificationService.verifyLoginOtp(
-              widget.mobile,
-              widget.verifiedOtp,
-            );
+            widget.mobile,
+            widget.verifiedOtp
+          );
 
-            if (loginResult["success"] == true && loginResult["sid"] != null) {
-              print("✅ Login successful (user already existed)");
+    if (loginResult["success"] == true && loginResult["sid"] != null) {
+    // Save session
+    await SessionManager.saveCustomerSession(
+    customerName: _nameController.text.trim(),
+    mobileNo: widget.mobile,
+    emailId: fullEmail,
+    sid: loginResult["sid"],
+    loginType: "otp",
+    );
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text("Welcome back! Login successful."),
-                  backgroundColor: Colors.green,
-                ),
-              );
 
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const MainNavbar()),
-                    (route) => false,
-              );
-              return;
-            }
-          }
+    Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavbar()),
+        (route) =>false,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Welcome back! Login successful."),
+        backgroundColor: Colors.green,
+      ),
+    );
+    return;
+    }
+    }
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

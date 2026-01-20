@@ -88,7 +88,7 @@ class MobileVerificationService {
       print("📱 Sending REGISTRATION OTP to: $mobileNo");
 
       final response = await http.post(
-        Uri.parse("$baseUrl/api/method/telemko_support.api.register.send_registration_otp"),
+        Uri.parse("$baseUrl/api/method/telemko_support.api.registration.send_otp.send_registration_otp"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"mobile_no": mobileNo}),
       );
@@ -211,26 +211,25 @@ class MobileVerificationService {
         "email_id": emailId,
       };
 
-      // ✅ ADD: Include vehicle_number if provided
+
       if (vehicleNumber != null && vehicleNumber.trim().isNotEmpty) {
         requestBody["vehicle_number"] = vehicleNumber.trim();
       }
 
-      // ✅ ADD: Include customer_primary_address if provided
       if (customerPrimaryAddress != null && customerPrimaryAddress.trim().isNotEmpty) {
         requestBody["customer_primary_address"] = customerPrimaryAddress.trim();
       }
 
-      print("📦 Request Body: $requestBody");
+      print(" Request Body: $requestBody");
 
       final response = await http.post(
-        Uri.parse("$baseUrl/api/method/telemko_support.api.register.complete_registration"),
+        Uri.parse("$baseUrl/api/method/telemko_support.api.registration.verify_and_complete.complete_registration"),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode(requestBody), // ✅ Use the updated requestBody
+        body: jsonEncode(requestBody),
       );
 
-      print("📊 Complete Registration Status: ${response.statusCode}");
-      print("📊 Response Body: ${response.body}");
+      print(" Complete Registration Status: ${response.statusCode}");
+      print(" Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -256,7 +255,7 @@ class MobileVerificationService {
               sid: sid,
               loginType: 'otp',
             );
-            print("✅ Registration successful and session saved!");
+            print(" Registration successful and session saved!");
           }
 
           return {

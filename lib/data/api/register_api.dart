@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class RegisterApi {
-  static const String baseUrl = "http://erp.talemka.com"; // or telemko.com
+  static const String baseUrl = "http://erp.telemko.com";
 
   /// Check if mobile number already registered
   static Future<bool> isMobileAlreadyRegistered(String mobileNo) async {
@@ -52,7 +52,7 @@ class RegisterApi {
   static Future<bool> sendRegistrationOtp(String mobileNo) async {
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/api/method/telemko_support.api.register.send_registration_otp"),
+        Uri.parse("$baseUrl/api/method/telemko_support.api.registration.send_otp.send_registration_otp"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"mobile_no": mobileNo}),
       );
@@ -67,32 +67,32 @@ class RegisterApi {
     }
   }
 
-  /// Verify registration OTP
-  static Future<Map<String, dynamic>?> verifyRegistrationOtp({
-    required String mobileNo
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse("$baseUrl/api/method/telemko_support.api.register.verify_registration_otp"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "mobile_no": mobileNo,
-        }),
-      );
-
-      print("[RegisterApi] Verify OTP response: ${response.statusCode}");
-      print("[RegisterApi] Verify OTP body: ${response.body}");
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data["message"];
-      }
-      return null;
-    } catch (e) {
-      print("[RegisterApi] Error verifying OTP: $e");
-      return null;
-    }
-  }
+  // /// Verify registration OTP
+  // static Future<Map<String, dynamic>?> verifyRegistrationOtp({
+  //   required String mobileNo
+  // }) async {
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse("$baseUrl/api/method/telemko_support.api.register.verify_registration_otp"),
+  //       headers: {"Content-Type": "application/json"},
+  //       body: jsonEncode({
+  //         "mobile_no": mobileNo,
+  //       }),
+  //     );
+  //
+  //     print("[RegisterApi] Verify OTP response: ${response.statusCode}");
+  //     print("[RegisterApi] Verify OTP body: ${response.body}");
+  //
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       return data["message"];
+  //     }
+  //     return null;
+  //   } catch (e) {
+  //     print("[RegisterApi] Error verifying OTP: $e");
+  //     return null;
+  //   }
+  // }
 
   /// Complete registration with optional fields
   static Future<Map<String, dynamic>?> completeRegistration({
@@ -121,7 +121,7 @@ class RegisterApi {
       }
 
       final response = await http.post(
-        Uri.parse("$baseUrl/api/method/telemko_support.api.register.complete_registration"),
+        Uri.parse("$baseUrl/api/method/telemko_support.api.registration.verify_and_complete.complete_registration"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(requestBody),
       );
