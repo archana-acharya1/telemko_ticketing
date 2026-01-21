@@ -6,7 +6,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.0-290.4.beta
+  sdk: ">=3.4.0 <4.0.0"
 
 
 dependencies:
@@ -19,9 +19,9 @@ dependencies:
   flutter_phone_direct_caller: ^2.2.1
   image_picker: ^1.2.1
   frappe_dart: ^0.0.5
-  shared_preferences: ^2.5.4
+  shared_preferences: ^2.3.2
+  permission_handler: ^11.3.1
   path_provider: ^2.1.5
-  permission_handler: ^12.0.1
   share_plus: ^12.0.1
   intl: ^0.20.2
   http: ^1.6.0

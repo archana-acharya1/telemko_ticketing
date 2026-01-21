@@ -328,10 +328,8 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    final onPrimaryColor = Theme.of(context).colorScheme.onPrimary;
-    final surfaceColor = Theme.of(context).colorScheme.surface;
-    final onSurfaceColor = Theme.of(context).colorScheme.onSurface;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       body: Container(
@@ -341,13 +339,14 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
           gradient: LinearGradient(
             colors: isDarkMode
                 ? [
-              Color(0xFF0A0E21),
-              Color(0xFF1A1A2E),
-              Color(0xFF16213E),
+              Color(0xFF0A0A0A),
+              Color(0xFF121212),
+              Color(0xFF1A1A1A),
             ]
                 : [
-              Color(0xFF6A11CB),
-              Color(0xFF2575FC),
+              Color(0xFFF5FAFF),
+              Color(0xFFEAF3FD),
+              Color(0xFFE0ECFB),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -355,11 +354,12 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppPadding.md),
             child: Column(
               children: [
                 const SizedBox(height: 40),
 
+                // Back button
                 if (!otpSent)
                   Align(
                     alignment: Alignment.topLeft,
@@ -367,48 +367,32 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                       onPressed: () => Navigator.pop(context),
                       icon: Icon(
                         Icons.arrow_back,
-                        color: onPrimaryColor,
+                        color: colorScheme.onSurface,
                         size: 28,
                       ),
                     ),
                   ),
 
-                Container(
-                  width: 100,
+                // Logo
+                SizedBox(
+                  width: double.infinity,
                   height: 100,
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    otpSent ? Icons.verified_user : Icons.sms,
-                    size: 60,
-                    color: onPrimaryColor,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                Text(
-                  otpSent ? "Enter OTP" : "Login/Register with SMS",
-                  style: TextStyle(
-                    color: onPrimaryColor,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                  child: Center(
+                    child: Image.asset(
+                      isDarkMode
+                          ? 'assets/images/black.png'
+                          : 'assets/images/white.png',
+                      height: 80,
+                      fit: BoxFit.fitHeight,
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 6),
 
-                Text(
-                  otpSent ? "OTP sent to $storedMobile" : "Enter your mobile number",
-                  style: TextStyle(
-                    color: onPrimaryColor.withOpacity(0.8),
-                    fontSize: 14,
-                  ),
-                ),
+                // Subtitle
 
+                // User status indicator
                 if (otpSent && isExistingUser != null)
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -416,12 +400,12 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                     decoration: BoxDecoration(
                       color: isExistingUser!
                           ? AppColors.success.withOpacity(isDarkMode ? 0.2 : 0.1)
-                          : primaryColor.withOpacity(isDarkMode ? 0.2 : 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                          : colorScheme.primary.withOpacity(isDarkMode ? 0.2 : 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                       border: Border.all(
                         color: isExistingUser!
                             ? AppColors.success
-                            : primaryColor,
+                            : colorScheme.primary,
                         width: 1,
                       ),
                     ),
@@ -430,13 +414,13 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                       children: [
                         Icon(
                           isExistingUser! ? Icons.person : Icons.person_add,
-                          color: isExistingUser! ? AppColors.success : primaryColor,
+                          color: isExistingUser! ? AppColors.success : colorScheme.primary,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           isExistingUser! ? "Registered user" : "New user",
                           style: TextStyle(
-                            color: isExistingUser! ? AppColors.success : primaryColor,
+                            color: isExistingUser! ? AppColors.success : colorScheme.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -446,11 +430,12 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
 
                 const SizedBox(height: 40),
 
+                // Main card
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: BorderRadius.circular(20),
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
                     boxShadow: [
                       BoxShadow(
                         color: isDarkMode
@@ -463,37 +448,68 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                   ),
                   child: Column(
                     children: [
-                      if (!otpSent)
-                        TextField(
-                          controller: mobileController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText: "Mobile Number",
-                            hintText: "Enter 10-digit number",
-                            prefixIcon: Icon(Icons.phone, color: primaryColor),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: primaryColor, width: 2),
-                            ),
-                            filled: true,
-                            fillColor: isDarkMode
-                                ? Theme.of(context).colorScheme.surfaceVariant
-                                : Colors.white,
-                            labelStyle: TextStyle(
-                              color: onSurfaceColor.withOpacity(0.7),
-                            ),
-                            hintStyle: TextStyle(
-                              color: onSurfaceColor.withOpacity(0.5),
-                            ),
-                          ),
-                          style: TextStyle(
-                            color: onSurfaceColor,
-                          ),
+                      // Title
+                      Text(
+                        otpSent ? "Enter OTP" : "Login/Register",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          color: colorScheme.onSurface,
                         ),
+                      ),
+                      const SizedBox(height: 30),
 
+                      if (!otpSent)
+                          TextField(
+                            controller: mobileController,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              labelText: "Enter your mobile number",
+                              hintText: "Enter 10-digit number",
+                              prefixIcon: Icon(Icons.phone, color: colorScheme.primary.withOpacity(0.8)),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: BorderSide(
+                                  color: colorScheme.outline.withOpacity(0.3),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: BorderSide(
+                                  color: colorScheme.outline.withOpacity(0.3),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: BorderSide(
+                                  color: colorScheme.primary,
+                                  width: 2,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surfaceVariant.withOpacity(0.9),
+                              labelStyle: TextStyle(
+                                color: isDarkMode
+                                    ? Colors.white.withOpacity(0.6)
+                                    : Colors.black.withOpacity(0.5),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                              hintStyle: TextStyle(
+                                color: isDarkMode
+                                    ? Colors.white.withOpacity(0.4)
+                                    : Colors.black.withOpacity(0.3),
+                                fontSize: 14,
+                              ),
+                            ),
+                            style: TextStyle(
+                              color: colorScheme.onSurface,
+                              fontSize: 16,
+                            ),
+                          ),
+
+                      // OTP fields (when OTP sent)
                       if (otpSent) ...[
                         const SizedBox(height: 20),
 
@@ -511,27 +527,25 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: onSurfaceColor,
+                                  color: colorScheme.onSurface,
                                 ),
                                 decoration: InputDecoration(
                                   counterText: '',
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
                                     borderSide: BorderSide(
-                                      color: onSurfaceColor.withOpacity(0.3),
+                                      color: colorScheme.outline,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
                                     borderSide: BorderSide(
-                                      color: primaryColor,
+                                      color: colorScheme.primary,
                                       width: 2,
                                     ),
                                   ),
                                   filled: true,
-                                  fillColor: isDarkMode
-                                      ? Theme.of(context).colorScheme.surfaceVariant
-                                      : Colors.white,
+                                  fillColor: colorScheme.surfaceVariant,
                                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
                                 onChanged: (value) => _onOtpChanged(value, index),
@@ -542,17 +556,18 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
 
                         const SizedBox(height: 20),
 
+                        // OTP timer
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: _isOtpExpired
-                                ? Theme.of(context).colorScheme.error.withOpacity(0.1)
-                                : primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
+                                ? colorScheme.errorContainer
+                                : colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
                             border: Border.all(
                               color: _isOtpExpired
-                                  ? Theme.of(context).colorScheme.error
-                                  : primaryColor,
+                                  ? colorScheme.error
+                                  : colorScheme.primary,
                               width: 1,
                             ),
                           ),
@@ -562,8 +577,8 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                               Icon(
                                 _isOtpExpired ? Icons.timer_off : Icons.timer,
                                 color: _isOtpExpired
-                                    ? Theme.of(context).colorScheme.error
-                                    : primaryColor,
+                                    ? colorScheme.error
+                                    : colorScheme.primary,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
@@ -571,8 +586,8 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                                 _isOtpExpired ? "OTP Expired" : "Valid for ${_formatTime(_otpSecondsRemaining)}",
                                 style: TextStyle(
                                   color: _isOtpExpired
-                                      ? Theme.of(context).colorScheme.error
-                                      : primaryColor,
+                                      ? colorScheme.error
+                                      : colorScheme.primary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
                                 ),
@@ -586,15 +601,17 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
 
                       const SizedBox(height: 20),
 
+                      // Main action button
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: isLoading ? null : (otpSent ? _verifyOtp : _sendOtp),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(AppRadius.md),
                             ),
                             elevation: 0,
                           ),
@@ -603,7 +620,7 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              color: onPrimaryColor,
+                              color: colorScheme.onPrimary,
                               strokeWidth: 2,
                             ),
                           )
@@ -613,7 +630,7 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                             (isExistingUser == true ? "Login" : "Continue Registration") :
                             "Send OTP",
                             style: TextStyle(
-                              color: onPrimaryColor,
+                              color: colorScheme.onPrimary,
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                             ),
@@ -623,25 +640,24 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
 
                       const SizedBox(height: 16),
 
+                      // Resend OTP button (when expired)
                       if (otpSent && _isOtpExpired)
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
                             onPressed: isLoading ? null : _sendOtp,
                             style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: primaryColor),
+                              side: BorderSide(color: colorScheme.primary),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(AppRadius.md),
                               ),
-                              backgroundColor: isDarkMode
-                                  ? primaryColor.withOpacity(0.1)
-                                  : null,
+                              backgroundColor: colorScheme.primary.withOpacity(0.1),
                             ),
                             child: Text(
                               "Resend OTP",
                               style: TextStyle(
-                                color: primaryColor,
+                                color: colorScheme.primary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -649,8 +665,9 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                           ),
                         ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
 
+                      // Alternative option
                       TextButton(
                         onPressed: otpSent
                             ? () {
@@ -666,7 +683,7 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                         child: Text(
                           otpSent ? "Change Mobile Number" : "Login with Password",
                           style: TextStyle(
-                            color: primaryColor,
+                            color: colorScheme.primary,
                             fontSize: 16,
                             decoration: TextDecoration.underline,
                           ),
@@ -682,8 +699,8 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                 Text(
                   "Need help? Contact support@telemko.com",
                   style: TextStyle(
-                    color: onPrimaryColor.withOpacity(0.7),
-                    fontSize: 12,
+                    color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.7),
+                    fontSize: 14,
                   ),
                 ),
               ],

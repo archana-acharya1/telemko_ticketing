@@ -79,6 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: Container(
@@ -106,78 +107,82 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.all(AppPadding.lg),
             child: Column(
               children: [
-                const SizedBox(height: 40),
-                Container(
-                  width: 100,
+                const SizedBox(height: 30),
+
+                // Logo
+                SizedBox(
+                  width: double.infinity,
                   height: 100,
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? Theme.of(context).colorScheme.surface
-                        : Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: isDarkMode
-                            ? Colors.black.withOpacity(0.4)
-                            : Colors.blue.withOpacity(0.1),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.support_agent,
-                    size: 60,
-                    color: Theme.of(context).colorScheme.primary,
+                  child: Center(
+                    child: Image.asset(
+                      isDarkMode
+                          ? 'assets/images/black.png'
+                          : 'assets/images/white.png',
+                      height: 80,
+                      fit: BoxFit.fitHeight,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  "Telemko Support",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onBackground,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Sign in to manage your support tickets",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
-                  ),
-                ),
+
                 const SizedBox(height: 40),
+
+                // Main card
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
                     boxShadow: [
                       BoxShadow(
                         color: isDarkMode
                             ? Colors.black.withOpacity(0.5)
-                            : Colors.blue.withOpacity(0.1),
+                            : Colors.black12,
                         blurRadius: 20,
                         offset: const Offset(0, 4),
                       ),
                     ],
                     border: isDarkMode
                         ? Border.all(
-                      color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                      color: colorScheme.outline.withOpacity(0.3),
                       width: 1,
                     )
                         : null,
                   ),
                   child: Column(
                     children: [
+                      // Title INSIDE CARD
+                      Text(
+                        "Login",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Text(
+                        "Sign in to your account",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // Username/Email/Mobile field
                       AppTextField(
                         controller: identifierController,
                         hintText: "Username / Email / Mobile",
                         prefixIcon: Icons.person,
                       ),
+
                       const SizedBox(height: AppPadding.md),
+
+                      // Password field
                       AppTextField(
                         controller: passwordController,
                         hintText: "Password",
@@ -188,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             isPasswordVisible
                                 ? Icons.visibility
                                 : Icons.visibility_off,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: colorScheme.onSurface.withOpacity(0.6),
                           ),
                           onPressed: () {
                             setState(() {
@@ -197,21 +202,27 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                         ),
                       ),
+
                       const SizedBox(height: 24),
+
+                      // Login button
                       SizedBox(
                         width: double.infinity,
                         child: AppButton(
                           text: isLoading ? "Please wait..." : "Login",
-                          color: Theme.of(context).colorScheme.primary,
+                          color: colorScheme.primary,
                           onPressed: isLoading ? null : handleLogin,
                         ),
                       ),
+
                       const SizedBox(height: 24),
+
+                      // Divider with OR
                       Row(
                         children: [
                           Expanded(
                             child: Divider(
-                              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                              color: colorScheme.outline.withOpacity(0.3),
                               thickness: 1,
                             ),
                           ),
@@ -220,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Text(
                               "OR",
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                color: colorScheme.onSurface.withOpacity(0.5),
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -228,13 +239,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           Expanded(
                             child: Divider(
-                              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                              color: colorScheme.outline.withOpacity(0.3),
                               thickness: 1,
                             ),
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 24),
+
+                      // SMS Login button
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
@@ -249,29 +263,27 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             side: BorderSide(
-                              color: Theme.of(context).colorScheme.primary,
+                              color: colorScheme.primary,
                               width: 1.5,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(AppRadius.md),
                             ),
-                            backgroundColor: isDarkMode
-                                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                                : Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                            backgroundColor: colorScheme.primary.withOpacity(isDarkMode ? 0.1 : 0.05),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
                                 Icons.sms,
-                                color: Theme.of(context).colorScheme.primary,
+                                color: colorScheme.primary,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
                               Text(
                                 "Login/Register with SMS",
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: colorScheme.primary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -280,35 +292,32 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+
+                      // Help text for SMS login
                       if (!isDarkMode) const SizedBox(height: 16),
                       if (!isDarkMode)
                         Text(
                           "We'll send you an OTP via SMS",
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: colorScheme.onSurface.withOpacity(0.6),
                             fontSize: 12,
                           ),
                         ),
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 32),
-                if (isDarkMode)
-                  Text(
-                    "Need help? Contact support@telemko.com",
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
-                      fontSize: 12,
-                    ),
+
+                // Support text at bottom
+                Text(
+                  "Need help? Contact support@telemko.com",
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.7),
+                    fontSize: 14,
                   ),
-                if (!isDarkMode)
-                  Text(
-                    "Need help? Contact support@telemko.com",
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
-                      fontSize: 13,
-                    ),
-                  ),
+                ),
+
                 const SizedBox(height: 20),
               ],
             ),
