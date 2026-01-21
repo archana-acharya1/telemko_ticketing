@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../widgets/quick_link_card.dart';
 import '../tickets/ticket_form_screen.dart';
 import '../auth/logout_screen.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_constants.dart';
 import '../tickets/ticket_history_screen.dart';
 import 'customer_support_screen.dart';
@@ -16,24 +14,33 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     print("[Dashboard] Dashboard screen loaded");
 
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: AppColors.primaryBlue,
-        foregroundColor: Colors.white,
+        backgroundColor: primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         title: Text(
           "Telemko Support",
-          style: AppTextStyles.headline2.copyWith(color: Colors.white),
+          style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: Icon(
+              Icons.logout,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
             onPressed: () {
               print("[Dashboard] Logout button tapped");
-
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const LogoutScreen()),
@@ -43,9 +50,17 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppColors.gradientTop, AppColors.gradientBottom],
+            colors: isDarkMode
+                ? [
+              Color(0xFF0A1A2F), // Dark blue top
+              Color(0xFF121212), // Dark background
+            ]
+                : [
+              Color(0xFFF5FAFF), // light gradient top
+              Color(0xFFEAF3FD), // light gradient bottom
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -60,7 +75,6 @@ class DashboardScreen extends StatelessWidget {
                 GestureDetector(
                   onTap: () {
                     print("[Dashboard] Create Support Ticket tapped");
-
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const TicketFormScreen()),
@@ -70,13 +84,15 @@ class DashboardScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBlue,
+                      color: primaryColor,
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
-                          color: Colors.black26,
+                          color: isDarkMode
+                              ? Colors.black.withOpacity(0.4)
+                              : Colors.black26,
                           blurRadius: 16,
-                          offset: Offset(0, 8),
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
@@ -85,10 +101,14 @@ class DashboardScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.support_agent, color: Colors.white, size: 32),
+                          child: Icon(
+                            Icons.support_agent,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            size: 32,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -97,9 +117,10 @@ class DashboardScreen extends StatelessWidget {
                             children: [
                               Text(
                                 "Create Support Ticket",
-                                style: AppTextStyles.headline2.copyWith(
-                                  color: Colors.white,
+                                style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -107,21 +128,31 @@ class DashboardScreen extends StatelessWidget {
                               const SizedBox(height: 6),
                               Text(
                                 "Report issues and get help instantly",
-                                style: TextStyle(color: Colors.white.withOpacity(0.85)),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.85),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          size: 18,
+                        ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 32),
-                // QUICK LINKS title changed to tickets and support
+                // TICKETS & SUPPORT title
                 Text(
                   "Tickets & Support",
-                  style: AppTextStyles.headline2.copyWith(fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: AppPadding.md),
                 GridView.count(
@@ -186,7 +217,7 @@ class DashboardScreen extends StatelessWidget {
     return QuickLinkCard(
       title: title,
       icon: icon,
-      textColor: Colors.black87,
+      textColor: Theme.of(context).colorScheme.onSurface,
       onTap: () {
         print("[Dashboard] Quick link tapped: $title");
         Navigator.push(context, MaterialPageRoute(builder: (_) => targetScreen));

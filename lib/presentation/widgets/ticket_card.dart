@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_constants.dart';
 
 class TicketCard extends StatelessWidget {
@@ -21,14 +19,49 @@ class TicketCard extends StatelessWidget {
     required this.status,
   });
 
+  Color _getStatusColor(String status, BuildContext context) {
+    final theme = Theme.of(context);
+    switch (status.toLowerCase()) {
+      case 'open':
+        return theme.colorScheme.error; // Red for open
+      case 'in progress':
+      case 'working':
+        return Colors.orange; // Orange for in progress
+      case 'resolved':
+      case 'completed':
+        return theme.colorScheme.secondary; // Green for resolved
+      case 'closed':
+        return Colors.grey; // Grey for closed
+      default:
+        return theme.colorScheme.primary; // Primary color for others
+    }
+  }
+
+  Color _getStatusTextColor(String status, BuildContext context) {
+    final bgColor = _getStatusColor(status, context);
+
+    // Calculate brightness for contrast
+    final brightness = ThemeData.estimateBrightnessForColor(bgColor);
+    return brightness == Brightness.dark ? Colors.white : Colors.black;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Card(
-      color: AppColors.lightCard,
+      color: cs.surface, // Theme-aware card color
       margin: const EdgeInsets.symmetric(vertical: AppPadding.sm),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
+        side: BorderSide(
+          color: cs.outline.withOpacity(0.2),
+          width: 1,
+        ),
       ),
+      elevation: 1,
       child: Padding(
         padding: const EdgeInsets.all(AppPadding.md),
         child: Column(
@@ -36,13 +69,35 @@ class TicketCard extends StatelessWidget {
           children: [
             Text(
               "$customerName ($mobile)",
-              style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: cs.onSurface,
+              ),
             ),
             const SizedBox(height: AppPadding.xs),
-            Text("Vehicle: $vehicleNumber", style: AppTextStyles.bodyText1),
-            Text("Device: $deviceType", style: AppTextStyles.bodyText1),
+            Text(
+              "Vehicle: $vehicleNumber",
+              style: TextStyle(
+                fontSize: 14,
+                color: cs.onSurface.withOpacity(0.8),
+              ),
+            ),
+            Text(
+              "Device: $deviceType",
+              style: TextStyle(
+                fontSize: 14,
+                color: cs.onSurface.withOpacity(0.8),
+              ),
+            ),
             const SizedBox(height: AppPadding.xs),
-            Text("Issue: $issue", style: AppTextStyles.bodyText2),
+            Text(
+              "Issue: $issue",
+              style: TextStyle(
+                fontSize: 13,
+                color: cs.onSurface.withOpacity(0.6),
+              ),
+            ),
             const SizedBox(height: AppPadding.sm),
             Align(
               alignment: Alignment.centerRight,
@@ -52,12 +107,16 @@ class TicketCard extends StatelessWidget {
                   horizontal: AppPadding.sm,
                 ),
                 decoration: BoxDecoration(
-                  color: status == "Open" ? Colors.red.shade300 : Colors.green.shade300,
+                  color: _getStatusColor(status, context),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Text(
                   status,
-                  style: AppTextStyles.bodyText2.copyWith(color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _getStatusTextColor(status, context),
+                  ),
                 ),
               ),
             ),

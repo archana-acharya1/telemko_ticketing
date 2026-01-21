@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_constants.dart';
 
 class AppButton extends StatelessWidget {
@@ -14,16 +12,26 @@ class AppButton extends StatelessWidget {
     super.key,
     required this.text,
     this.onPressed,
-    this.color = AppColors.primaryBlue,
-    this.width, //  Custom width
+    this.color = Colors.blue, // Default color, will be overridden
+    this.width,
     this.expanded = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final buttonColor = color == Colors.blue
+        ? theme.colorScheme.primary
+        : color;
+
     final childWidget = ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: onPressed == null ? Colors.grey : color,
+        backgroundColor: onPressed == null
+            ? theme.colorScheme.surfaceVariant
+            : buttonColor,
+        foregroundColor: onPressed == null
+            ? theme.colorScheme.onSurface.withOpacity(0.5)
+            : theme.colorScheme.onPrimary,
         padding: const EdgeInsets.symmetric(
           vertical: AppPadding.md,
           horizontal: AppPadding.lg,
@@ -35,7 +43,13 @@ class AppButton extends StatelessWidget {
       onPressed: onPressed,
       child: Text(
         text,
-        style: AppTextStyles.buttonText,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: onPressed == null
+              ? theme.colorScheme.onSurface.withOpacity(0.5)
+              : theme.colorScheme.onPrimary,
+        ),
       ),
     );
 

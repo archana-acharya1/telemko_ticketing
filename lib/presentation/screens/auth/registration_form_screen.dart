@@ -3,7 +3,6 @@ import 'package:telemko_support/presentation/screens/dashboard/lib/data/local/se
 import 'package:telemko_support/presentation/screens/navbar/main_navbar.dart';
 import 'package:telemko_support/services/mobile_verification_service.dart';
 import 'package:telemko_support/services/session_helper.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_constants.dart';
 import '../../widgets/app_button.dart';
@@ -62,7 +61,6 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
           otp: widget.verifiedOtp,
           customerName: _nameController.text.trim(),
           emailId: fullEmail,
-          // Use the constructed full email
           vehicleNumber: _vehicleController.text.trim(),
           customerPrimaryAddress: _addressController.text.trim(),
         );
@@ -94,51 +92,50 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result["message"] ?? "Registration successful"),
-              backgroundColor: Colors.green,
+              backgroundColor: Theme.of(context).colorScheme.secondary,
             ),
           );
 
           return;
-        }else{
+        } else {
           final errorMsg = result["message"]?.toString().toLowerCase() ?? "";
-          
-          if (errorMsg.contains('already exists') || errorMsg.contains('duplicate')){
+
+          if (errorMsg.contains('already exists') || errorMsg.contains('duplicate')) {
             final loginResult = await MobileVerificationService.verifyLoginOtp(
-            widget.mobile,
-            widget.verifiedOtp
-          );
+                widget.mobile,
+                widget.verifiedOtp
+            );
 
-    if (loginResult["success"] == true && loginResult["sid"] != null) {
-    // Save session
-    await SessionManager.saveCustomerSession(
-    customerName: _nameController.text.trim(),
-    mobileNo: widget.mobile,
-    emailId: fullEmail,
-    sid: loginResult["sid"],
-    loginType: "otp",
-    );
+            if (loginResult["success"] == true && loginResult["sid"] != null) {
+              // Save session
+              await SessionManager.saveCustomerSession(
+                customerName: _nameController.text.trim(),
+                mobileNo: widget.mobile,
+                emailId: fullEmail,
+                sid: loginResult["sid"],
+                loginType: "otp",
+              );
 
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const MainNavbar()),
+                    (route) => false,
+              );
 
-    Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const MainNavbar()),
-        (route) =>false,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Welcome back! Login successful."),
-        backgroundColor: Colors.green,
-      ),
-    );
-    return;
-    }
-    }
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Welcome back! Login successful."),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              return;
+            }
+          }
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result["message"] ?? "Registration failed"),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -151,7 +148,7 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Error: ${e.toString()}"),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -160,12 +157,15 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Complete Registration"),
-        backgroundColor: AppColors.primaryBlue,
+        backgroundColor: primaryColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -179,15 +179,17 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
               const SizedBox(height: 20),
               Text(
                 "Complete Your Profile",
-                style: AppTextStyles.headline2.copyWith(
-                  color: AppColors.primaryBlue,
+                style: TextStyle( // Changed from AppTextStyles.headline2
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 "Fill in your details to complete registration",
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   fontSize: 14,
                 ),
               ),
@@ -197,13 +199,22 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: isDarkMode
+                      ? Theme.of(context).colorScheme.surfaceVariant
+                      : Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(
+                    color: isDarkMode
+                        ? Theme.of(context).colorScheme.outline
+                        : Colors.grey[300]!,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.phone, color: Colors.grey[600]),
+                    Icon(
+                        Icons.phone,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -213,14 +224,15 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                             "Mobile Number",
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                             ),
                           ),
                           Text(
                             widget.mobile,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -235,14 +247,20 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  hintText: " Name *",
-                  prefixIcon: Icon(Icons.person),
+                  hintText: "Name *",
+                  prefixIcon: Icon(Icons.person, color: primaryColor),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.primaryBlue),
+                    borderSide: BorderSide(color: primaryColor, width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
                   ),
                 ),
                 validator: (value) {
@@ -254,7 +272,7 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
               ),
               const SizedBox(height: AppPadding.md),
 
-              // Email with auto-suffix - Better version using suffixText
+              // Email with auto-suffix
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -262,17 +280,23 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                     controller: _emailController,
                     decoration: InputDecoration(
                       hintText: "Enter email",
-                      prefixIcon: Icon(Icons.email),
+                      prefixIcon: Icon(Icons.email, color: primaryColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: AppColors.primaryBlue),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
                       suffixText: "@telemko.com",
                       suffixStyle: TextStyle(
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
                       ),
@@ -285,14 +309,13 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                       if (value.contains('@')) {
                         return 'Just enter username without @telemko.com';
                       }
-                      // Allow letters, numbers, dots, underscores
                       if (!RegExp(r'^[a-zA-Z0-9._]+$').hasMatch(value)) {
                         return 'Only letters, numbers, dots and underscores allowed';
                       }
                       return null;
                     },
                     onChanged: (value) {
-                      setState(() {}); // Trigger rebuild to update preview
+                      setState(() {});
                     },
                   ),
                   const SizedBox(height: 4),
@@ -303,7 +326,7 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                         "Email will be: ${_emailController.text.trim()}@telemko.com",
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.blue[700],
+                          color: primaryColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -320,13 +343,19 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                     controller: _vehicleController,
                     decoration: InputDecoration(
                       hintText: "Vehicle Number (Optional)",
-                      prefixIcon: Icon(Icons.directions_car),
+                      prefixIcon: Icon(Icons.directions_car, color: primaryColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: AppColors.primaryBlue),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
                     ),
                   ),
@@ -336,7 +365,7 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                       "Example: BA 1 PA 1234",
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -353,13 +382,19 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                     controller: _addressController,
                     decoration: InputDecoration(
                       hintText: "Primary Address (Optional)",
-                      prefixIcon: Icon(Icons.location_on),
+                      prefixIcon: Icon(Icons.location_on, color: primaryColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: AppColors.primaryBlue),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
                     ),
                     maxLines: 3,
@@ -371,7 +406,7 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                       "Your address for service requests",
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -385,7 +420,7 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                 width: double.infinity,
                 child: AppButton(
                   text: isLoading ? "Processing..." : "Complete Registration",
-                  color: AppColors.primaryBlue,
+                  color: primaryColor,
                   onPressed: isLoading ? null : _completeRegistration,
                 ),
               ),
@@ -396,20 +431,24 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue[100]!),
+                  border: Border.all(color: primaryColor.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info, color: Colors.blue[700], size: 18),
+                    Icon(
+                        Icons.info,
+                        color: primaryColor,
+                        size: 18
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         "Vehicle number and address are optional. You can add them later from your profile.",
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.blue[700],
+                          color: primaryColor,
                         ),
                       ),
                     ),

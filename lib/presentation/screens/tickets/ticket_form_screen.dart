@@ -53,25 +53,47 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     selectedSubject = widget.preSelectedSubject ?? subjects[0];
   }
 
-  // ================== FILE PICKER ==================
-
   Future<void> _pickFile() async {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: isDarkMode
+          ? Theme.of(context).colorScheme.surface
+          : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
+              leading: Icon(
+                Icons.photo_library,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(
+                'Gallery',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _getImage(ImageSource.gallery);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
+              leading: Icon(
+                Icons.camera_alt,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(
+                'Camera',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _getImage(ImageSource.camera);
@@ -110,8 +132,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       selectedFiles.removeAt(index);
     });
   }
-
-  // ================== UPLOAD FILES AND GET URLS ==================
 
   Future<List<String>> _uploadFilesAndGetUrls() async {
     List<String> uploadedUrls = [];
@@ -187,17 +207,12 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     }
   }
 
-  // ================== BUILD DESCRIPTION WITH IMAGES ==================
-
   String _buildDescriptionWithImages(String originalDescription, List<String> fileUrls) {
     if (fileUrls.isEmpty) return originalDescription;
 
     String description = originalDescription;
-
-    // Add spacing and a visual separator
     description += "\n\n\n\n<br>\n";
 
-    // Add each image on a new line
     for (var fileUrl in fileUrls) {
       final fileName = fileUrl.split('/').last;
       final isImage = fileName.toLowerCase().endsWith('.jpg') ||
@@ -206,15 +221,12 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
           fileName.toLowerCase().endsWith('.gif');
 
       if (isImage) {
-        // Image with better spacing
         description += '<br><img src="$fileUrl" style="max-width: 400px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;"><br>\n';
       }
     }
 
     return description;
   }
-
-  // ================== USER DATA FETCHING - UPDATED FIX ==================
 
   Future<void> _fetchUserInformation() async {
     setState(() {
@@ -223,7 +235,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     });
 
     try {
-      // Get session data - this works for BOTH login types
       final session = await SessionManager.getCustomerSession();
 
       if (session == null) {
@@ -240,17 +251,14 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       print("🔍 Login Type: $loginType");
       print("📱 Session Data: Name=${session["customer_name"]}, Mobile=${session["mobile_no"]}, Email=${session["email_id"]}");
 
-      // USE SESSION DATA DIRECTLY - Don't fetch from ERP
       setState(() {
         customerName = session["customer_name"] ?? "Customer";
         mobileNumber = session["mobile_no"] ?? "";
         customerEmail = session["email_id"] ?? "";
 
-        // Check if it's a phone login
         isPhoneLogin = loginType == "otp" || loginType == "mobile" ||
             (mobileNumber!.isNotEmpty && (customerEmail == null || customerEmail!.isEmpty));
 
-        // If no email but we have mobile, create system email
         if (isPhoneLogin && (customerEmail == null || customerEmail!.isEmpty)) {
           if (mobileNumber!.isNotEmpty) {
             customerEmail = "$mobileNumber@phoneuser.telemko.com";
@@ -280,10 +288,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     }
   }
 
-  // ================== TICKET SUBMISSION - UPDATED FIX ==================
-
   Future<void> submitTicket() async {
-    // DEBUG: Print session info before starting
     print("🔍 === DEBUG BEFORE TICKET CREATION ===");
     final session = await SessionManager.getCustomerSession();
     print("Session: $session");
@@ -306,7 +311,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       return;
     }
 
-    // Ensure we have email for phone users
     if (isPhoneLogin && (customerEmail == null || customerEmail!.isEmpty)) {
       if (mobileNumber != null && mobileNumber!.isNotEmpty) {
         customerEmail = "$mobileNumber@phoneuser.telemko.com";
@@ -321,12 +325,10 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       final session = await SessionManager.getCustomerSession();
       final sid = session?["sid"] ?? "";
 
-      // Use the data we already have from _fetchUserInformation()
       final loggedCustomerName = customerName ?? "Customer";
       final loggedCustomerEmail = customerEmail ?? "";
       final loggedMobile = mobileNumber ?? "";
 
-      // Make SURE we have an email for phone users
       if (isPhoneLogin && loggedCustomerEmail.isEmpty) {
         if (loggedMobile.isNotEmpty) {
           customerEmail = "$loggedMobile@phoneuser.telemko.com";
@@ -345,7 +347,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         throw Exception("No session found. Please login again.");
       }
 
-      // ========== STEP 1: UPLOAD FILES FIRST (IF ANY) ==========
       List<String> uploadedFileUrls = [];
       if (selectedFiles.isNotEmpty) {
         setState(() => isUploading = true);
@@ -353,25 +354,19 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         setState(() => isUploading = false);
       }
 
-      // ========== STEP 2: CREATE TICKET WITH EMBEDDED IMAGES ==========
       String finalDescription = description;
-
-      // Build description with embedded HTML images
       if (uploadedFileUrls.isNotEmpty) {
         finalDescription = _buildDescriptionWithImages(description, uploadedFileUrls);
       }
 
-      // TICKET DATA - FIXED FOR BOTH LOGIN TYPES
       final Map<String, dynamic> ticketData = {
         "subject": selectedSubject,
-        "description": finalDescription, // This now contains HTML with embedded images
+        "description": finalDescription,
         "status": "Open",
       };
 
-      // ALWAYS include customer - use mobile number if name is generic
       if (loggedCustomerName.isNotEmpty) {
         if (loggedCustomerName == "Customer" || loggedCustomerName.contains("Customer")) {
-          // For generic names, use mobile number format
           if (loggedMobile.isNotEmpty) {
             ticketData["customer"] = "Customer ($loggedMobile)";
           } else {
@@ -382,14 +377,12 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         }
       }
 
-      // ALWAYS include raised_by
       if (customerEmail != null && customerEmail!.isNotEmpty) {
         ticketData["raised_by"] = customerEmail!;
       } else if (loggedMobile.isNotEmpty) {
         ticketData["raised_by"] = loggedMobile;
       }
 
-      // ALWAYS include mobile number
       if (loggedMobile.isNotEmpty) {
         ticketData["custom_mobile_no"] = loggedMobile;
       }
@@ -424,7 +417,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
         print("[TicketFormScreen] Ticket created with ID: $ticketId");
 
-        // ========== SHOW SUCCESS MESSAGE ==========
         String successMessage;
         if (selectedFiles.isNotEmpty && uploadedFileUrls.isNotEmpty) {
           successMessage = "Ticket #$ticketId created successfully!\n"
@@ -444,14 +436,12 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
           ),
         );
 
-        // Clear form
         descriptionController.clear();
         vehicleNumberController.clear();
         setState(() {
           selectedFiles.clear();
         });
 
-        // Navigate after delay
         Future.delayed(const Duration(milliseconds: 2000), () {
           Navigator.pushReplacement(
             context,
@@ -476,7 +466,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error: $errorMsg"),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 5),
         ),
       );
@@ -488,13 +478,11 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     }
   }
 
-  // ================== HELPER METHODS ==================
-
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
   }
@@ -508,17 +496,17 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     );
   }
 
-  // ================== UI WIDGETS (UNCHANGED) ==================
+  Widget _buildInfoField(String label, String? value, BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-  Widget _buildInfoField(String label, String? value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: Colors.grey,
+            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -530,15 +518,23 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
             horizontal: 16,
           ),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: isDarkMode
+                ? Theme.of(context).colorScheme.surfaceVariant
+                : Colors.grey[100],
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(
+              color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline.withOpacity(0.3)
+                  : Colors.grey[300]!,
+            ),
           ),
           child: Text(
             value ?? "Loading...",
             style: TextStyle(
               fontSize: 16,
-              color: value != null ? Colors.black87 : Colors.grey,
+              color: isDarkMode
+                  ? (value != null ? Colors.white : Colors.grey[400])
+                  : (value != null ? Colors.black87 : Colors.grey),
               fontWeight: value != null ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -555,15 +551,17 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     required TextEditingController controller,
     int maxLines = 1,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         const SizedBox(height: 8),
@@ -579,36 +577,50 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
   }
 
   Widget _buildSubjectDropdown() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Subject *",
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDarkMode
+                ? Theme.of(context).colorScheme.surface
+                : Colors.white,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(
+              color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline.withOpacity(0.5)
+                  : Colors.grey[300]!,
+            ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: selectedSubject,
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+              icon: Icon(
+                Icons.arrow_drop_down,
+                color: isDarkMode ? Colors.grey[400] : Colors.grey,
+              ),
               iconSize: 24,
               elevation: 8,
               isExpanded: true,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: Colors.black87,
+                color: isDarkMode ? Colors.white : Colors.black87,
               ),
+              dropdownColor: isDarkMode
+                  ? Theme.of(context).colorScheme.surface
+                  : Colors.white,
               onChanged: (String? newValue) {
                 setState(() {
                   selectedSubject = newValue;
@@ -629,30 +641,36 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
   }
 
   Widget _buildAttachmentSection() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Attachments (Optional)",
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         const SizedBox(height: 8),
 
-        // Upload Button
         ElevatedButton.icon(
           onPressed: _pickFile,
-          icon: const Icon(Icons.add_a_photo),
+          icon: Icon(
+            Icons.add_a_photo,
+            color: Colors.white,
+          ),
           label: const Text(
             "Add Photo/File",
-            style: TextStyle(fontSize: 16),
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white,
+            ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBlue,
-            foregroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             minimumSize: const Size(double.infinity, 50),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -662,27 +680,31 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
         const SizedBox(height: 8),
 
-        // Upload status
         if (isUploading)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
                 SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   "Uploading files...",
-                  style: TextStyle(color: Colors.blue, fontSize: 14),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ),
           ),
 
-        // File list
         if (selectedFiles.isNotEmpty)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -690,10 +712,10 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
               const SizedBox(height: 12),
               Text(
                 "Selected Files (${selectedFiles.length}):",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey,
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                 ),
               ),
               const SizedBox(height: 8),
@@ -705,17 +727,21 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
+                    color: isDarkMode
+                        ? Colors.green.withOpacity(0.2)
+                        : const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: const Color(0xFFC8E6C9),
+                      color: isDarkMode
+                          ? Colors.green.withOpacity(0.5)
+                          : const Color(0xFFC8E6C9),
                     ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.image,
-                        color: Colors.green,
+                        color: isDarkMode ? Colors.greenAccent : Colors.green,
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -725,25 +751,32 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                           children: [
                             Text(
                               fileName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
+                                color: isDarkMode ? Colors.white : Colors.black87,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               "Will be embedded in ticket description",
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF388E3C),
+                                color: isDarkMode
+                                    ? Colors.greenAccent.withOpacity(0.8)
+                                    : const Color(0xFF388E3C),
                               ),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                        icon: Icon(
+                          Icons.delete,
+                          color: isDarkMode ? Colors.redAccent : Colors.red,
+                          size: 20,
+                        ),
                         onPressed: () => _removeFile(index),
                       ),
                     ],
@@ -755,21 +788,31 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
         const SizedBox(height: 8),
 
-        // Info note
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFE3F2FD),
+            color: isDarkMode
+                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                : const Color(0xFFE3F2FD),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.info, color: Colors.blue, size: 16),
-              SizedBox(width: 8),
+              Icon(
+                Icons.info,
+                color: isDarkMode ? Colors.blueAccent : Colors.blue,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   "Files will be uploaded and embedded as images in the ticket description.",
-                  style: TextStyle(fontSize: 12, color: Color(0xFF1565C0)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDarkMode
+                        ? Colors.blueAccent
+                        : const Color(0xFF1565C0),
+                  ),
                 ),
               ),
             ],
@@ -788,207 +831,236 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Create Support Ticket"),
-        backgroundColor: AppColors.primaryBlue,
+        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
-      body: isFetchingUserInfo
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Show a note if GPS Not Working is pre-selected
-            if (selectedSubject == "GPS Not Working")
+      body: Container(
+        color: isDarkMode
+            ? Theme.of(context).colorScheme.background
+            : Colors.grey[50],
+        child: isFetchingUserInfo
+            ? const Center(
+          child: CircularProgressIndicator(),
+        )
+            : SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (selectedSubject == "GPS Not Working")
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                        : const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDarkMode ? Colors.blueAccent : Colors.blue,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.gps_fixed,
+                        color: isDarkMode ? Colors.blueAccent : Colors.blue,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "GPS Issue Ticket - 'GPS Not Working' is pre-selected",
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.blueAccent : Colors.blue,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (errorMessage != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? Colors.orange.withOpacity(0.2)
+                        : const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDarkMode ? Colors.orangeAccent : Colors.orange,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info,
+                        color: isDarkMode ? Colors.orangeAccent : Colors.orange,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          errorMessage!,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.orangeAccent : Colors.orange,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              Text(
+                "Your Information",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Auto-filled from your account",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              _buildInfoField("Customer Name", customerName, context),
+
+              if (isPhoneLogin && (customerEmail == null || !customerEmail!.contains("@")))
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoField("Email", "Not available (Phone login)", context),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? Colors.orange.withOpacity(0.2)
+                            : const Color(0xFFFFF3E0),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "Note: You logged in with phone number. A system email will be used for ticket creation.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDarkMode ? Colors.orangeAccent : Colors.orange,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                _buildInfoField("Email", customerEmail, context),
+
+              _buildInfoField("Mobile Number", mobileNumber, context),
+
+              const SizedBox(height: 24),
+
+              Text(
+                "Ticket Details",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              _buildSubjectDropdown(),
+
+              _buildLabeledTextField(
+                label: "Vehicle Number (Optional)",
+                hintText: "Enter vehicle number (if applicable)",
+                prefixIcon: Icons.directions_car,
+                controller: vehicleNumberController,
+              ),
+
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Description *",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  AppTextField(
+                    controller: descriptionController,
+                    hintText: "Describe your issue in detail...",
+                    prefixIcon: Icons.description,
+                    maxLines: 4,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildAttachmentSection(),
+
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  text: isLoading ? "Creating Ticket..." : "Submit Ticket",
+                  onPressed: (isLoading || isUploading) ? null : submitTicket,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
               Container(
                 padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
+                  color: isDarkMode
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                      : const Color(0xFFE3F2FD),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.gps_fixed, color: Colors.blue, size: 20),
+                    Icon(
+                      Icons.info,
+                      color: isDarkMode ? Colors.blueAccent : Colors.blue,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "GPS Issue Ticket - 'GPS Not Working' is pre-selected",
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w600,
+                        isPhoneLogin
+                            ? "You logged in with phone number. Tickets will be linked to your mobile number."
+                            : "Your customer information is fetched from your account. Tickets will be linked to your email.",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDarkMode
+                              ? Colors.blueAccent
+                              : const Color(0xFF1565C0),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-
-            if (errorMessage != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info, color: Colors.orange, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        errorMessage!,
-                        style: const TextStyle(color: Colors.orange),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Customer Information Section
-            const Text(
-              "Your Information",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Auto-filled from your account",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Customer Name (auto-filled, read-only)
-            _buildInfoField("Customer Name", customerName),
-
-            // Email (auto-filled, read-only) - Show note for phone users
-            if (isPhoneLogin && (customerEmail == null || !customerEmail!.contains("@")))
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoField("Email", "Not available (Phone login)"),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3E0),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      "Note: You logged in with phone number. A system email will be used for ticket creation.",
-                      style: TextStyle(fontSize: 12, color: Colors.orange),
-                    ),
-                  ),
-                ],
-              )
-            else
-              _buildInfoField("Email", customerEmail),
-
-            // Mobile Number (auto-filled, read-only)
-            _buildInfoField("Mobile Number", mobileNumber),
-
-            const SizedBox(height: 24),
-
-            // Ticket Information Section
-            const Text(
-              "Ticket Details",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Subject Dropdown (required)
-            _buildSubjectDropdown(),
-
-            // Vehicle Number Field (optional)
-            _buildLabeledTextField(
-              label: "Vehicle Number (Optional)",
-              hintText: "Enter vehicle number (if applicable)",
-              prefixIcon: Icons.directions_car,
-              controller: vehicleNumberController,
-            ),
-
-            // Description Field
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Description *",
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                AppTextField(
-                  controller: descriptionController,
-                  hintText: "Describe your issue in detail...",
-                  prefixIcon: Icons.description,
-                  maxLines: 4,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Attachment Section
-            _buildAttachmentSection(),
-
-            const SizedBox(height: 24),
-
-            SizedBox(
-              width: double.infinity,
-              child: AppButton(
-                text: isLoading ? "Creating Ticket..." : "Submit Ticket",
-                onPressed: (isLoading || isUploading) ? null : submitTicket,
-                color: AppColors.primaryBlue,
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Info Note
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE3F2FD),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info, color: Colors.blue, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      isPhoneLogin
-                          ? "You logged in with phone number. Tickets will be linked to your mobile number."
-                          : "Your customer information is fetched from your account. Tickets will be linked to your email.",
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF1565C0),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

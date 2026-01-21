@@ -9,7 +9,6 @@ import '../../../core/theme/app_constants.dart';
 class LogoutScreen extends StatelessWidget {
   const LogoutScreen({super.key});
 
-  // Perform logout, clear session, and navigate to LoginScreen
   void performLogout(BuildContext context) async {
     print("[LogoutScreen] Logout initiated by user");
 
@@ -26,16 +25,18 @@ class LogoutScreen extends StatelessWidget {
         print("[LogoutScreen] Navigating to LoginScreen after logout");
         return const LoginScreen();
       }),
-          (route) => false, // Remove all previous routes
+          (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Logout"),
-        backgroundColor: AppColors.primaryBlue,
+        backgroundColor: primaryColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppPadding.lg),
@@ -51,8 +52,10 @@ class LogoutScreen extends StatelessWidget {
             Text(
               "Are you sure you want to logout?",
               textAlign: TextAlign.center,
-              style: AppTextStyles.headline2.copyWith(
+              style: TextStyle(
+                fontSize: 24,
                 fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: AppPadding.xl),
@@ -61,7 +64,7 @@ class LogoutScreen extends StatelessWidget {
               child: AppButton(
                 text: "Logout",
                 onPressed: () => performLogout(context),
-                color: AppColors.primaryBlue,
+                color: primaryColor,
               ),
             ),
             const SizedBox(height: AppPadding.md),
@@ -81,8 +84,10 @@ class LogoutScreen extends StatelessWidget {
                 ),
                 child: Text(
                   "Cancel",
-                  style: AppTextStyles.buttonText.copyWith(
-                    color: AppColors.primaryBlue,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
                   ),
                 ),
               ),

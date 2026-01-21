@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 
 class CustomerSupportScreen extends StatelessWidget {
   CustomerSupportScreen({super.key});
@@ -38,11 +36,13 @@ class CustomerSupportScreen extends StatelessWidget {
     } else {
       print("[CustomerSupport] WhatsApp not available");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Could not open WhatsApp")),
+        SnackBar(
+          content: Text("Could not open WhatsApp"),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
     }
   }
-
 
   Future<void> _openFacebookChat(String pageId) async {
     print("[CustomerSupport] Facebook Messenger tapped");
@@ -54,7 +54,6 @@ class CustomerSupportScreen extends StatelessWidget {
       print("[CustomerSupport] Facebook Messenger not available");
     }
   }
-
 
   Future<void> openEmail(BuildContext context) async {
     print("[CustomerSupport] Email support tapped");
@@ -77,15 +76,22 @@ class CustomerSupportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     print("[CustomerSupport] Screen Loaded");
     return Scaffold(
       appBar: AppBar(
         title: Text(
           "Customer Support",
-          style: AppTextStyles.headline2.copyWith(color: Colors.white),
+          style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: AppColors.primaryBlue,
+        backgroundColor: primaryColor,
       ),
 
       body: Padding(
@@ -95,8 +101,10 @@ class CustomerSupportScreen extends StatelessWidget {
             Center(
               child: Text(
                 "Contact Us",
-                style: AppTextStyles.subtitle1.copyWith(
-                  fontWeight: FontWeight.bold,
+                style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -136,7 +144,7 @@ class CustomerSupportScreen extends StatelessWidget {
             _buildSupportTile(
               context: context,
               icon: Icons.mail_outline,
-              iconColor: AppColors.primaryBlue,
+              iconColor: primaryColor,
               title: "Email Us",
               onTap: () => openEmail(context),
             ),
@@ -155,15 +163,26 @@ class CustomerSupportScreen extends StatelessWidget {
     required String title,
     required VoidCallback onTap,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
-      color: AppColors.lightCard,
+      color: isDarkMode
+          ? Theme.of(context).colorScheme.surfaceVariant
+          : Theme.of(context).colorScheme.surface,
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
         leading: Icon(icon, color: iconColor),
-        title: Text(title, style: AppTextStyles.bodyText1),
+        title: Text(
+          title,
+          style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+            fontSize: 16,
+            fontWeight: FontWeight.normal,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
         onTap: onTap,
       ),
     );

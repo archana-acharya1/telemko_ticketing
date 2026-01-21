@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:telemko_support/presentation/screens/auth/sms_auth_screen.dart';
-import 'register_with_sms_screen.dart'; // Add this import
-import '../auth/login_screen.dart'; // Keep this for back navigation
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../widgets/quick_link_card.dart';
 import 'ticket_form_screen.dart';
 import 'gps_ticket_screen.dart';
@@ -11,13 +10,21 @@ class TicketSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           "Select Ticket Type",
-          style: AppTextStyles.headline2.copyWith(color: Colors.white),
+          style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: cs.onPrimary,
+          ),
         ),
         centerTitle: true,
+        backgroundColor: cs.primary,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -29,34 +36,38 @@ class TicketSelectionScreen extends StatelessWidget {
             QuickLinkCard(
               title: "Generic Ticket",
               icon: Icons.add_circle_outline,
+              textColor: cs.onSurface, // Theme-aware text color
               onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const TicketFormScreen())),
+                context,
+                MaterialPageRoute(builder: (_) => const TicketFormScreen()),
+              ),
             ),
             QuickLinkCard(
               title: "GPS Ticket",
               icon: Icons.gps_fixed,
+              textColor: cs.onSurface, // Theme-aware text color
               onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const GPSTicketScreen())),
+                context,
+                MaterialPageRoute(builder: (_) => const GPSTicketScreen()),
+              ),
             ),
             QuickLinkCard(
               title: "Fuel Sensor Ticket",
               icon: Icons.local_gas_station,
+              textColor: cs.onSurface, // Theme-aware text color
               onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const FuelTicketScreen())),
+                context,
+                MaterialPageRoute(builder: (_) => const FuelTicketScreen()),
+              ),
             ),
             QuickLinkCard(
               title: "Dashcam Ticket",
               icon: Icons.videocam,
+              textColor: cs.onSurface, // Theme-aware text color
               onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const DashcamTicketScreen())),
+                context,
+                MaterialPageRoute(builder: (_) => const DashcamTicketScreen()),
+              ),
             ),
           ],
         ),

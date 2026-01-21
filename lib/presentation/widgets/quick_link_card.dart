@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/animation/press_scale.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_constants.dart';
 
 enum QuickLinkCardVariant { small, large }
@@ -13,8 +11,8 @@ class QuickLinkCard extends StatelessWidget {
   final QuickLinkCardVariant variant;
   final double? width;
   final double? height;
-  final Color textColor; // ✅ NEW PARAMETER
-  final Color? backgroundColor; // Optional background override
+  final Color textColor;
+  final Color? backgroundColor;
 
   const QuickLinkCard({
     super.key,
@@ -24,30 +22,29 @@ class QuickLinkCard extends StatelessWidget {
     this.variant = QuickLinkCardVariant.small,
     this.width,
     this.height,
-    this.textColor = Colors.black87, // default
+    this.textColor = Colors.black87,
     this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final bool isSmall = variant == QuickLinkCardVariant.small;
 
     return PressScale(
       onTap: onTap,
       child: Container(
         width: width ?? (isSmall ? 120 : double.infinity),
-        height: height ??
-            (isSmall
-                ? 140
-                : 120), //For large cards
+        height: height ?? (isSmall ? 140 : 120),
         padding: isSmall
             ? const EdgeInsets.all(AppPadding.sm)
             : const EdgeInsets.all(AppPadding.lg),
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.white, // keeping white as default
+          color: backgroundColor ?? cs.surface, // Theme-aware background
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
-            color: AppColors.primaryBlue.withOpacity(0.3),
+            color: cs.primary.withOpacity(0.3), // Theme-aware border
             width: 1.2,
           ),
           boxShadow: [
@@ -62,33 +59,50 @@ class QuickLinkCard extends StatelessWidget {
             ? Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 36, color: AppColors.primaryBlue),
+            Icon(
+              icon,
+              size: 36,
+              color: cs.primary, // Theme-aware icon color
+            ),
             const SizedBox(height: AppPadding.sm),
             Text(
               title,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.bodyText1.copyWith(
-                  fontWeight: FontWeight.w600, color: textColor),
+              style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: textColor, // Use passed textColor parameter
+              ),
             ),
           ],
         )
             : Row(
           children: [
-            Icon(icon, size: 40, color: AppColors.primaryBlue),
+            Icon(
+              icon,
+              size: 40,
+              color: cs.primary, // Theme-aware icon color
+            ),
             const SizedBox(width: AppPadding.lg),
             Expanded(
               child: Text(
                 title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.subtitle1.copyWith(
-                    fontWeight: FontWeight.w600, color: textColor),
+                style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: textColor, // Use passed textColor parameter
+                ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios,
-                size: 20, color: AppColors.primaryBlue),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 20,
+              color: cs.primary, // Theme-aware icon color
+            ),
           ],
         ),
       ),
