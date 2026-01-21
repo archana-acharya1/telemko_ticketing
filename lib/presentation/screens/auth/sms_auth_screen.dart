@@ -359,19 +359,6 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
               children: [
                 const SizedBox(height: 40),
 
-                // Back button
-                if (!otpSent)
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.arrow_back,
-                        color: colorScheme.onSurface,
-                        size: 28,
-                      ),
-                    ),
-                  ),
 
                 // Logo
                 SizedBox(
