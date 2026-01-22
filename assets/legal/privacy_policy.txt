@@ -1,0 +1,88 @@
+Privacy Policy for Telemko_Support
+
+Last Updated: [Date]
+
+This Privacy Policy applies to the Telemko_Support mobile application (the "Application"), developed and provided by DESKGOO CONSULTING PRIVATE LIMITED (the "Service Provider," "we," "us," or "our"). This document informs you ("User," "you," or "your") of our policies regarding the collection, use, and disclosure of your information when you use our Application.
+
+By downloading and using the Application, you agree to the collection and use of information in accordance with this policy. If you do not agree, please do not use the Application.
+
+1. Information Collection and Use
+
+The Application collects certain information to provide and improve our service to you.
+
+A. Personally Identifiable Information You Provide:
+For account creation, authentication, and support ticket submission, we may ask you to provide:
+* Email Address
+* Full Name
+* Phone Number
+* Other Personal Details (such as address or vehicle registration number) if required for the service request.
+
+B. Payment Facilitation:
+The Application displays QR codes to facilitate payments from you to DESKGOO CONSULTING PRIVATE LIMITED for services or products. The Application itself does not process payments or store your payment card/bank details. All payments are handled directly between you and your payment provider/bank when you scan the QR code.
+
+C. User-Provided Media and Content:
+To enable you to raise and describe support issues, the Application requests access to:
+* Camera: To take new photos related to an issue.
+* Photos/Media/Files: To upload existing images or documents from your device.
+* Microphone: To record audio notes or descriptions, if this feature is utilized.
+
+Purpose: This media is collected solely for the purpose of documenting and resolving the support ticket you are creating.
+
+D. Automatically Collected Information:
+For app functionality and basic analytics, we may automatically collect:
+* Your device's Internet Protocol (IP) address.
+* Device type and operating system version.
+* App usage statistics (e.g., feature usage, session length, crash reports).
+
+2. How We Use Your Information
+
+We use the collected information for:
+* Creating and managing your user account.
+* Authenticating you and providing access to the Application.
+* Processing your support requests, including using submitted media to understand and resolve issues.
+* Facilitating payments by displaying QR codes (we do not handle the actual payment transaction).
+* Communicating with you regarding your account, support tickets, and important updates.
+* Improving the Application's performance and user experience through internal analysis of aggregated, non-identifiable data.
+
+3. Data Sharing and Disclosure
+
+* We do not sell your personal data.
+* We do not share your personal data with advertising networks.
+* We may share your information only in specific circumstances:
+    * With Your Consent: When we have your explicit consent.
+    * For Legal Reasons: If required by law or in response to valid requests by public authorities.
+    * With Trusted Service Providers: We may employ third-party companies to facilitate our Service ("Processors"), such as cloud hosting providers. These third parties have access to your information only to perform specific tasks on our behalf and are obligated not to disclose or use it for any other purpose.
+
+4. Data Retention Policy
+
+We will retain your User Provided Data (like your account information and support tickets) for as long as you maintain an account with us and as necessary to provide services. Media files attached to closed support tickets may be archived or deleted after a reasonable retention period.
+
+If you wish to delete your account and associated personal data, please contact us at info@telemko.com. We will respond to your request within a reasonable timeframe.
+
+5. Children's Privacy
+
+Our Application and services are not directed at children under the age of 13. We do not knowingly collect personally identifiable information from children under 13. If we discover that a child under 13 has provided us with personal information, we will immediately delete it from our servers.
+
+6. Security
+
+We implement administrative, technical, and physical safeguards designed to secure your information. However, no method of electronic transmission or storage is 100% secure, and we cannot guarantee its absolute security.
+
+7. Your Rights and Choices
+
+* Opt-Out: You can stop all collection of information by uninstalling the Application.
+* Access & Correction: You may contact us to request access to or correction of your personal data.
+* Deletion: You can request the deletion of your account and data by contacting us.
+
+8. Changes to This Privacy Policy
+
+We may update our Privacy Policy. We will notify you of changes by posting the new Privacy Policy on this page and updating the "Last Updated" date. Your continued use of the Application constitutes acceptance of the updated policy.
+
+9. Your Consent
+
+By using the Application, you consent to the processing of your information as described in this Privacy Policy.
+
+10. Contact Us
+
+If you have any questions about this Privacy Policy, please contact us at:
+DESKGOO CONSULTING PRIVATE LIMITED
+Email: info@telemko.com

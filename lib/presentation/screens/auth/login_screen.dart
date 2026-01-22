@@ -4,6 +4,7 @@ import '../../../core/theme/app_constants.dart';
 import '../../../services/customer_service.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/legal_document_dialog.dart';
 import '../navbar/main_navbar.dart';
 import 'sms_auth_screen.dart';
 
@@ -20,6 +21,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool isPasswordVisible = false;
   bool isLoading = false;
+
+  void _showLegalDocument(String type) {
+    showDialog(
+      context: context,
+      builder: (context) => LegalDocumentDialog(documentType: type),
+    );
+  }
 
   Future<void> handleLogin() async {
     final identifier = identifierController.text.trim();
@@ -310,12 +318,75 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 32),
 
                 // Support text at bottom
-                Text(
-                  "Need help? Contact support@telemko.com",
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.7),
-                    fontSize: 14,
-                  ),
+                Column(
+                  children: [
+                    // First line
+                    Text(
+                      "By tapping on Login, you are agreeing to our",
+                      style: TextStyle(
+                        color: isDarkMode
+                            ? Colors.white.withOpacity(0.8)
+                            : Colors.black.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    // Second line with clickable links
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Terms & Conditions link
+                        GestureDetector(
+                          onTap: () => _showLegalDocument('terms'),
+                          child: Text(
+                            "Terms & Conditions",
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+
+                        Text(
+                          " and ",
+                          style: TextStyle(
+                            color: isDarkMode
+                                ? Colors.white.withOpacity(0.8)
+                                : Colors.black.withOpacity(0.7),
+                            fontSize: 14,
+                          ),
+                        ),
+
+                        // Privacy Policy link
+                        GestureDetector(
+                          onTap: () => _showLegalDocument('privacy'),
+                          child: Text(
+                            "Privacy Policy",
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+
+                        Text(
+                          " ! ",
+                          style: TextStyle(
+                            color: isDarkMode
+                                ? Colors.white.withOpacity(0.8)
+                                : Colors.black.withOpacity(0.7),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 20),
