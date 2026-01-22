@@ -39,6 +39,13 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _emailController.text = "${widget.mobile}@telemko.com";
+  }
+
+
   Future<void> _completeRegistration() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -50,9 +57,7 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
       try {
         print(" Completing registration for mobile: ${widget.mobile}");
 
-        // Construct full email from username
-        final username = _emailController.text.trim();
-        final fullEmail = '$username@telemko.com';
+        final fullEmail = _emailController.text.trim();
 
         print(" Constructed email: $fullEmail");
 
@@ -278,15 +283,12 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                 children: [
                   TextFormField(
                     controller: _emailController,
+                    readOnly: true, // 🔒 VERY IMPORTANT
                     decoration: InputDecoration(
-                      hintText: "Enter email",
+                      labelText: "Email",
                       prefixIcon: Icon(Icons.email, color: primaryColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: primaryColor, width: 2),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -294,30 +296,18 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                           color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
-                      suffixText: "@telemko.com",
-                      suffixStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
+                      disabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
                     ),
-                    keyboardType: TextInputType.text,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a username';
-                      }
-                      if (value.contains('@')) {
-                        return 'Just enter username without @telemko.com';
-                      }
-                      if (!RegExp(r'^[a-zA-Z0-9._]+$').hasMatch(value)) {
-                        return 'Only letters, numbers, dots and underscores allowed';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      setState(() {});
-                    },
                   ),
+
+
                   const SizedBox(height: 4),
                   if (_emailController.text.isNotEmpty)
                     Padding(
