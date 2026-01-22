@@ -3,6 +3,7 @@ import '../../core/theme/app_constants.dart';
 
 class AppTextField extends StatelessWidget {
   final TextEditingController controller;
+  final String labelText;
   final String hintText;
   final IconData? prefixIcon;
   final int maxLines;
@@ -13,11 +14,12 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final String? Function(String?)? validator;
   final void Function(String?)? onSaved;
-  final bool isTextFormField; // New: Choose between TextField and TextFormField
+  final bool isTextFormField;
 
   const AppTextField({
     super.key,
     required this.controller,
+    required this.labelText,
     required this.hintText,
     this.prefixIcon,
     this.suffixIcon,
@@ -38,11 +40,15 @@ class AppTextField extends StatelessWidget {
 
     // Common decoration
     InputDecoration decoration = InputDecoration(
+      labelText: labelText,
       hintText: hintText,
+      floatingLabelBehavior: FloatingLabelBehavior.auto,
+
       prefixIcon: prefixIcon != null
           ? Icon(prefixIcon, color: cs.primary)
           : null,
       suffixIcon: suffixIcon,
+
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
         borderSide: BorderSide(color: cs.outline),

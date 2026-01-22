@@ -567,6 +567,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         const SizedBox(height: 8),
         AppTextField(
           controller: controller,
+          labelText: label,
           hintText: hintText,
           prefixIcon: prefixIcon,
           maxLines: maxLines,
@@ -983,7 +984,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
               _buildSubjectDropdown(),
 
               _buildLabeledTextField(
-                label: "Vehicle Number (Optional)",
+                label: "Vehicle Number(optional)",
                 hintText: "Enter vehicle number (if applicable)",
                 prefixIcon: Icons.directions_car,
                 controller: vehicleNumberController,
@@ -1003,6 +1004,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                   const SizedBox(height: 8),
                   AppTextField(
                     controller: descriptionController,
+                    labelText: "",
                     hintText: "Describe your issue in detail...",
                     prefixIcon: Icons.description,
                     maxLines: 4,

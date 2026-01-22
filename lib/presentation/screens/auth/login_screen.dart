@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Enter username/email/mobile and password",
+            "Enter username",
             style: AppTextStyles.bodyMedium(context).copyWith(
               color: Theme.of(context).colorScheme.onError,
             ),
@@ -184,7 +184,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Username/Email/Mobile field
                       AppTextField(
                         controller: identifierController,
-                        hintText: "Username / Email / Mobile",
+                        labelText: "Username ",
+                        hintText: "",
+
                         prefixIcon: Icons.person,
                       ),
 
@@ -193,7 +195,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Password field
                       AppTextField(
                         controller: passwordController,
-                        hintText: "Password",
+                        labelText: "Password",
+                        hintText: "",
                         prefixIcon: Icons.lock,
                         obscureText: !isPasswordVisible,
                         suffixIcon: IconButton(
