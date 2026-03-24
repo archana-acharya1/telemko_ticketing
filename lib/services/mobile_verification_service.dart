@@ -6,6 +6,37 @@ import '../presentation/screens/dashboard/lib/data/local/session_manager.dart';
 
 class MobileVerificationService {
   static const String baseUrl = "http://erp.telemko.com";
+  static const String apiToken = "d8194889a199fc4:598c54965a4e106";
+
+  static String? _extractSidFromSetCookie(Map<String, String> headers) {
+    final setCookie = headers["set-cookie"] ?? headers["Set-Cookie"];
+    if (setCookie == null || setCookie.isEmpty) return null;
+
+    // `Set-Cookie` can contain multiple cookies.
+    final cookieStrings = setCookie.split(',');
+    for (final cookieStr in cookieStrings) {
+      final trimmed = cookieStr.trim();
+      final match = RegExp(r"sid=([^;\s,]+)").firstMatch(trimmed);
+      final sid = match?.group(1)?.trim();
+      if (sid != null && sid.isNotEmpty && sid != "Logged In" && sid.length > 10) {
+        return sid;
+      }
+    }
+    return null;
+  }
+
+  static bool _looksLikeValidSid(dynamic sid) {
+    if (sid is! String) return false;
+    return sid.isNotEmpty && sid != "Logged In" && sid.length > 10;
+  }
+
+  /// Public helper to validate SID (e.g. after registration) so only valid sessions are used.
+  static bool isValidSid(dynamic sid) {
+    if (sid == null) return false;
+    final s = sid is String ? sid : sid.toString();
+    return s.isNotEmpty && s != "Logged In" && s.length > 10;
+  }
+
 
   /// Check if customer exists using the verify_customer_and_user API
   static Future<bool> isCustomerExists(String mobileNo) async {
@@ -49,7 +80,10 @@ class MobileVerificationService {
 
       final response = await http.post(
         Uri.parse("$baseUrl/api/method/telemko_support.api.send_otp.send_otp"),
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "token $apiToken",
+        },
         body: jsonEncode({"mobile_no": mobileNo}),
       );
 
@@ -83,13 +117,17 @@ class MobileVerificationService {
   }
 
   /// Send OTP for REGISTRATION (new customers)
+  /// Send OTP for REGISTRATION (new customers)
   static Future<Map<String, dynamic>> sendRegistrationOtp(String mobileNo) async {
     try {
       print("📱 Sending REGISTRATION OTP to: $mobileNo");
 
       final response = await http.post(
         Uri.parse("$baseUrl/api/method/telemko_support.api.registration.send_otp.send_registration_otp"),
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "token $apiToken",
+        },
         body: jsonEncode({"mobile_no": mobileNo}),
       );
 
@@ -121,7 +159,6 @@ class MobileVerificationService {
       };
     }
   }
-
   /// Verify OTP and LOGIN (existing customers)
   static Future<Map<String, dynamic>> verifyLoginOtp(String mobileNo, String otp) async {
     try {
@@ -129,7 +166,10 @@ class MobileVerificationService {
 
       final response = await http.post(
         Uri.parse("$baseUrl/api/method/telemko_support.api.custom_mobile_login.mobile_login"),
-        headers: {"Content-Type": "application/json"},
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "token $apiToken",
+          },
         body: jsonEncode({
           "mobile_no": mobileNo,
           "otp": otp,
@@ -145,12 +185,14 @@ class MobileVerificationService {
         print("📊 Full API Response: $data");
 
         // Extract ALL important data
-        final sid = message['sid'];
+        final sidFromBody = message['sid'];
+        final sidFromCookie = _extractSidFromSetCookie(response.headers);
+        final sid = _looksLikeValidSid(sidFromBody) ? sidFromBody : sidFromCookie;
         final user = message['user']?.toString();
         final fullName = message['full_name']?.toString();
         final responseMessage = message['message']?.toString() ?? '';
 
-        if (sid != null && sid.isNotEmpty) {
+        if (sid != null && sid.toString().isNotEmpty) {
           print("✅ Login verified successfully!");
           print("   SID: $sid");
           print("   User: $user");
@@ -165,7 +207,7 @@ class MobileVerificationService {
             "data": message,  // Include full data
           };
         } else {
-          print("❌ No SID in response");
+          print("❌ No valid SID in response body or cookie");
           return {
             "success": false,
             "message": "Login failed: No session ID",
@@ -224,7 +266,10 @@ class MobileVerificationService {
 
       final response = await http.post(
         Uri.parse("$baseUrl/api/method/telemko_support.api.registration.verify_and_complete.complete_registration"),
-        headers: {"Content-Type": "application/json"},
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "token $apiToken",
+          },
         body: jsonEncode(requestBody),
       );
 
@@ -244,7 +289,9 @@ class MobileVerificationService {
         if (isSuccess) {
           // After successful registration, you might want to auto-login
           // or save the user data. The API might return a SID.
-          final sid = message['sid'];
+          final sidFromBody = message['sid'];
+          final sidFromCookie = _extractSidFromSetCookie(response.headers);
+          final sid = _looksLikeValidSid(sidFromBody) ? sidFromBody : sidFromCookie;
 
           if (sid != null) {
             // Save session after registration

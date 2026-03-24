@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:telemko_support/presentation/screens/auth/sms_auth_screen.dart';
 import 'package:telemko_support/presentation/screens/dashboard/lib/data/local/session_manager.dart';
 import 'package:telemko_support/presentation/screens/navbar/main_navbar.dart';
 import 'package:telemko_support/services/mobile_verification_service.dart';
@@ -57,7 +58,7 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
       try {
         print(" Completing registration for mobile: ${widget.mobile}");
 
-        final fullEmail = _emailController.text.trim();
+        final fullEmail = "${_emailController.text.trim()}";
 
         print(" Constructed email: $fullEmail");
 
@@ -77,29 +78,64 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
         print(" Registration Result: ${result["success"]}");
         print(" Registration Message: ${result["message"]}");
 
-        if (result["success"] == true && result["sid"] != null) {
-          await SessionManager.saveCustomerSession(
-            customerName: _nameController.text.trim(),
-            mobileNo: widget.mobile,
-            emailId: fullEmail,
-            sid: result["sid"],
-            loginType: "registration",
+        if (result["success"] == true) {
+          // Establish session so user can use app (create ticket, etc.) without manual login.
+          // Prefer login API (same as manual login); fallback to registration response if backend returns session there.
+          final loginResult = await MobileVerificationService.verifyLoginOtp(
+              widget.mobile,
+              widget.verifiedOtp,
           );
+          String? sid;
+          final loginSid = loginResult["sid"];
+          if (MobileVerificationService.isValidSid(loginSid)) {
+            sid = loginSid is String ? loginSid : loginSid.toString();
+          }
+          if (sid == null) {
+            final resultSid = result["sid"];
+            if (MobileVerificationService.isValidSid(resultSid)) {
+              sid = resultSid is String ? resultSid : resultSid.toString();
+            }
+          }
 
-          await SessionHelper.debugCurrentSession();
+          if (sid != null && sid.isNotEmpty) {
+            await SessionManager.saveCustomerSession(
+              customerName: _nameController.text.trim(),
+              mobileNo: widget.mobile,
+              emailId: fullEmail,
+              sid: sid,
+              loginType: "otp",
+            );
 
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const MainNavbar()),
+            await SessionHelper.debugCurrentSession();
+
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const MainNavbar()),
                 (route) => false,
-          );
+            );
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result["message"] ?? "Registration successful"),
-              backgroundColor: Theme.of(context).colorScheme.secondary,
-            ),
-          );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result["message"] ?? "Registration successful"),
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+              ),
+            );
+          } else {
+            // Auto-login failed (registration OTP cannot be reused for login).
+            // Navigate to login screen so the user can establish a proper session.
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const SmsAuthScreen()),
+              (route) => false,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Registration successful! Please log in to continue."),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
 
           return;
         } else {
@@ -111,13 +147,14 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                 widget.verifiedOtp
             );
 
-            if (loginResult["success"] == true && loginResult["sid"] != null) {
-              // Save session
+            final existingSid = loginResult["sid"];
+          if (loginResult["success"] == true && MobileVerificationService.isValidSid(existingSid)) {
+              final sidStr = existingSid is String ? existingSid : existingSid.toString();
               await SessionManager.saveCustomerSession(
                 customerName: _nameController.text.trim(),
                 mobileNo: widget.mobile,
                 emailId: fullEmail,
-                sid: loginResult["sid"],
+                sid: sidStr,
                 loginType: "otp",
               );
 
@@ -313,7 +350,7 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
                     Padding(
                       padding: const EdgeInsets.only(left: 8.0),
                       child: Text(
-                        "Email will be: ${_emailController.text.trim()}@telemko.com",
+                        "Email will be: ${_emailController.text.trim()}",
                         style: TextStyle(
                           fontSize: 12,
                           color: primaryColor,

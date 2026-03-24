@@ -1,6 +1,6 @@
 Terms and Conditions for Telemko_Support
 
-Last Updated: [Date]
+Last Updated: 2 February 2026
 
 These Terms and Conditions ("Terms") govern your use of the Telemko_Support mobile application (the "Application") and the associated services (collectively, the "Service") provided by DESKGOO CONSULTING PRIVATE LIMITED ("Service Provider," "we," "us," or "our").
 
@@ -59,4 +59,4 @@ These Terms shall be governed by the laws of India. Any disputes shall be subjec
 
 For questions about these Terms, contact us at:
 DESKGOO CONSULTING PRIVATE LIMITED
-Email: info@telemko.com
+Email: info@deskgoo.com

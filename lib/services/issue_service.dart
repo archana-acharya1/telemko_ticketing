@@ -349,22 +349,9 @@ class IssueService {
         }
       }
 
-      final uri = Uri.parse(url).replace(queryParameters: params);
-      final response = await http.get(
-        uri,
-        headers: {
-          "Content-Type": "application/json",
-          "Cookie": "sid=$sid",
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        List<dynamic> issues = data["data"] ?? [];
-        print("[IssueService] Found ${issues.length} issues without filter");
-        return issues;
-      }
-
+      // All filters returned empty (user has no tickets) or no filters available.
+      // Return empty list - do NOT make an unfiltered request (that would show all users' tickets).
+      print("[IssueService] No tickets found for user");
       return [];
     } catch (e) {
       print("[IssueService] Error in fallback: $e");

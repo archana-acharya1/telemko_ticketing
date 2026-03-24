@@ -57,29 +57,22 @@ class SessionManager {
 
 
   static Future<Map<String, dynamic>?> getCustomerSession() async {
-
-    if (!isLoggedIn()) {
-      print("[SessionManager] getCustomerSession: Not logged in");
+    final prefs = await SharedPreferences.getInstance();
+    // Ensure SID is loaded from storage (e.g. after app restart or when _cachedSid was never set)
+    String? sid = _cachedSid ?? prefs.getString(_keySid);
+    if (sid != null && sid.isNotEmpty) {
+      _cachedSid = sid;
+      ApiClient.setSid(sid);
+    }
+    if (sid == null || sid.isEmpty) {
+      print("[SessionManager] getCustomerSession: No SID in memory or prefs");
       return null;
     }
-
-    final prefs = await SharedPreferences.getInstance();
-
-
-    // final sid = prefs.getString(_keySid);
-    // if (sid == null || sid.isEmpty) {
-    //   print("[SessionManager] getCustomerSession: SID missing");
-    //   return null;
-    // }
-
-    // ApiClient.setSid(sid);
-    // print("[SessionManager] getCustomerSession: SID=$sid");
-
     return {
       "customer_name": prefs.getString(_keyCustomerName) ?? "",
       "mobile_no": prefs.getString(_keyMobileNo) ?? "",
       "email_id": prefs.getString(_keyEmailId) ?? "",
-      "sid": _cachedSid,
+      "sid": sid,
       "login_type": prefs.getString(_keyLoginType) ?? "",
     };
   }

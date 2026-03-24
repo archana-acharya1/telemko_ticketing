@@ -1,6 +1,6 @@
 Privacy Policy for Telemko_Support
 
-Last Updated: [Date]
+Last Updated: 2 February 2026
 
 This Privacy Policy applies to the Telemko_Support mobile application (the "Application"), developed and provided by DESKGOO CONSULTING PRIVATE LIMITED (the "Service Provider," "we," "us," or "our"). This document informs you ("User," "you," or "your") of our policies regarding the collection, use, and disclosure of your information when you use our Application.
 
@@ -85,4 +85,4 @@ By using the Application, you consent to the processing of your information as d
 
 If you have any questions about this Privacy Policy, please contact us at:
 DESKGOO CONSULTING PRIVATE LIMITED
-Email: info@telemko.com
+Email: info@deskgoo.com

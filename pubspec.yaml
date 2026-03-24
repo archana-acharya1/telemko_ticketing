@@ -3,7 +3,8 @@ description: "A new Flutter project."
 publish_to: 'none'
 
 
-version: 1.0.0+1
+version: 1.0.4+5
+
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -45,7 +46,10 @@ flutter:
     - assets/legal/
 
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: true
   ios: true
-  image_path: "assets/images/app_icon.png"
+  image_path_android: "assets/images/playstore.png"
+  image_path_ios: "assets/images/appstore.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/images/playstore.png"
   min_sdk_android: 21
