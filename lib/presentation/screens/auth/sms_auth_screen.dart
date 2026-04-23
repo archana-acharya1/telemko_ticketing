@@ -19,7 +19,16 @@ import 'login_screen.dart';
 import 'registration_form_screen.dart';
 
 class SmsAuthScreen extends StatefulWidget {
-  const SmsAuthScreen({super.key});
+  /// Pre-fill mobile and automatically send a login OTP.
+  /// Used after registration so the user doesn't have to re-enter their number.
+  final String? initialMobile;
+  final bool autoSendOtp;
+
+  const SmsAuthScreen({
+    super.key,
+    this.initialMobile,
+    this.autoSendOtp = false,
+  });
 
   @override
   State<SmsAuthScreen> createState() => _SmsAuthScreenState();
@@ -56,6 +65,47 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
           );
         }
       });
+    }
+
+    // If redirected from registration, pre-fill mobile and auto-send a login OTP.
+    if (widget.autoSendOtp && widget.initialMobile != null) {
+      mobileController.text = widget.initialMobile!;
+      storedMobile = widget.initialMobile!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _autoSendLoginOtp();
+      });
+    }
+  }
+
+  /// Called automatically after registration to send a fresh login OTP.
+  /// The registration OTP is single-use (consumed by completeRegistration),
+  /// so we need a new OTP to establish a session.
+  Future<void> _autoSendLoginOtp() async {
+    setState(() {
+      isLoading = true;
+      isExistingUser = true; // user was just registered
+    });
+
+    try {
+      final result = await MobileVerificationService.sendLoginOtp(storedMobile);
+
+      if (!mounted) return;
+      setState(() => isLoading = false);
+
+      if (result["success"] == true) {
+        setState(() => otpSent = true);
+        _clearAllOtpFields();
+        _startOtpTimer();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) FocusScope.of(context).requestFocus(_otpFocusNodes[0]);
+        });
+      } else {
+        _showSnackBar("Failed to send login OTP. Please try again.");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
+      _showSnackBar("Error sending OTP: ${e.toString()}");
     }
   }
 

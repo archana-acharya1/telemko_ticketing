@@ -3,7 +3,6 @@ import 'package:telemko_support/presentation/screens/auth/sms_auth_screen.dart';
 import 'package:telemko_support/presentation/screens/dashboard/lib/data/local/session_manager.dart';
 import 'package:telemko_support/presentation/screens/navbar/main_navbar.dart';
 import 'package:telemko_support/services/mobile_verification_service.dart';
-import 'package:telemko_support/services/session_helper.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_constants.dart';
 import '../../widgets/app_button.dart';
@@ -79,25 +78,10 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
         print(" Registration Message: ${result["message"]}");
 
         if (result["success"] == true) {
-          // Establish session so user can use app (create ticket, etc.) without manual login.
-          // Prefer login API (same as manual login); fallback to registration response if backend returns session there.
-          final loginResult = await MobileVerificationService.verifyLoginOtp(
-              widget.mobile,
-              widget.verifiedOtp,
-          );
-          String? sid;
-          final loginSid = loginResult["sid"];
-          if (MobileVerificationService.isValidSid(loginSid)) {
-            sid = loginSid is String ? loginSid : loginSid.toString();
-          }
-          if (sid == null) {
-            final resultSid = result["sid"];
-            if (MobileVerificationService.isValidSid(resultSid)) {
-              sid = resultSid is String ? resultSid : resultSid.toString();
-            }
-          }
-
-          if (sid != null && sid.isNotEmpty) {
+          // Best case: backend returned a session SID directly from registration.
+          final resultSid = result["sid"];
+          if (MobileVerificationService.isValidSid(resultSid)) {
+            final sid = resultSid is String ? resultSid : resultSid.toString();
             await SessionManager.saveCustomerSession(
               customerName: _nameController.text.trim(),
               mobileNo: widget.mobile,
@@ -105,38 +89,40 @@ class _RegistrationFormScreenState extends State<RegistrationFormScreen> {
               sid: sid,
               loginType: "otp",
             );
-
-            await SessionHelper.debugCurrentSession();
-
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (_) => const MainNavbar()),
-                (route) => false,
-            );
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result["message"] ?? "Registration successful"),
-                backgroundColor: Theme.of(context).colorScheme.secondary,
-              ),
-            );
-          } else {
-            // Auto-login failed (registration OTP cannot be reused for login).
-            // Navigate to login screen so the user can establish a proper session.
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const SmsAuthScreen()),
               (route) => false,
             );
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Registration successful! Please log in to continue."),
+              SnackBar(
+                content: Text(result["message"] ?? "Registration successful"),
                 backgroundColor: Colors.green,
-                duration: Duration(seconds: 4),
               ),
             );
+            return;
           }
 
+          // Backend did not return a session (common — registration OTP is single-use
+          // and cannot be reused for login). Navigate to SmsAuthScreen which will
+          // automatically send a fresh login OTP to the user's number.
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SmsAuthScreen(
+                initialMobile: widget.mobile,
+                autoSendOtp: true,
+              ),
+            ),
+            (route) => false,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result["message"] ?? "Registration successful! Enter the OTP sent to verify login."),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 4),
+            ),
+          );
           return;
         } else {
           final errorMsg = result["message"]?.toString().toLowerCase() ?? "";
