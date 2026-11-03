@@ -1,4 +1,4 @@
-package com.example.telemko_support
+package com.example.telemko_service
 
 import io.flutter.embedding.android.FlutterActivity
 

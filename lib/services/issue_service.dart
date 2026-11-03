@@ -3,55 +3,54 @@ import 'package:http/http.dart' as http;
 import '../presentation/screens/dashboard/lib/data/local/session_manager.dart';
 
 class IssueService {
-  static const String baseUrl = "http://erp.telemko.com";
+  static const String baseUrl = "https://erp.telemko.com";
 
-  /// Fetch issues for logged-in user with ALL customer details
+  /// Fetch issues for the logged-in user.
+  ///
+  /// Identity rule (important): tickets are matched by `raised_by` (the
+  /// email of the account that created them) and `custom_mobile_number`.
+  /// We NEVER filter by `customer` because that's a free-text display name
+  /// — many users can share it (e.g. "Test") and it would leak tickets.
   static Future<List<dynamic>> fetchMyIssues() async {
     try {
       print("[IssueService] Fetching issues for logged-in user");
 
-      // Get session
       final session = await SessionManager.getCustomerSession();
       if (session == null || session["sid"] == null) {
         print("[IssueService] Error: No active session found");
         throw Exception("Not authenticated. Please login again.");
       }
 
-      final sid = session["sid"];
-      final customerName = session["customer_name"] ?? "";
-      final mobileNumber = session["mobile_no"] ?? "";
-      final email = session["email_id"] ?? session["email"] ?? "";
+      final sid = session["sid"] as String;
+      final mobileNumber = (session["mobile_no"] ?? "").toString();
+      final email = (session["email_id"] ?? session["email"] ?? "").toString();
 
-      print("[IssueService] User session - Name: $customerName, Mobile: $mobileNumber, Email: $email");
+      print("[IssueService] User session - Mobile: $mobileNumber, Email: $email");
 
-      // Try multiple methods in sequence
-      List<dynamic> issues = [];
-
-      // METHOD 1: Try get_list with expanded fields
+      // Method 1: frappe.client.get_list with full fields (preferred)
       try {
-        issues = await _fetchUsingGetList(sid, customerName, mobileNumber, email);
+        final issues = await _fetchUsingGetList(sid, mobileNumber, email);
         if (issues.isNotEmpty) return issues;
       } catch (e) {
         print("[IssueService] get_list failed: $e");
       }
 
-      // METHOD 2: Try direct resource API
+      // Method 2: direct /api/resource/Issue with expanded fields
       try {
-        issues = await _fetchUsingResourceAPI(sid, customerName, mobileNumber, email);
+        final issues = await _fetchUsingResourceAPI(sid, mobileNumber, email);
         if (issues.isNotEmpty) return issues;
       } catch (e) {
         print("[IssueService] resource API failed: $e");
       }
 
-      // METHOD 3: Try fallback with minimal fields
+      // Method 3: minimal fields fallback (for 417 field-permission cases)
       try {
-        issues = await _fetchWithMinimalFields(sid, customerName, mobileNumber, email);
+        final issues = await _fetchWithMinimalFields(sid, mobileNumber, email);
         if (issues.isNotEmpty) return issues;
       } catch (e) {
         print("[IssueService] fallback failed: $e");
       }
 
-      // If all methods fail, return empty
       return [];
     } catch (e) {
       print("[IssueService] Error fetching issues: $e");
@@ -59,12 +58,14 @@ class IssueService {
     }
   }
 
-  /// METHOD 1: Use frappe.client.get_list API with ALL fields
-  static Future<List<dynamic>> _fetchUsingGetList(String sid, String customerName, String mobileNumber, String email) async {
+  // ─────────────────────────────────────────────────────────────────────
+  // METHOD 1 — frappe.client.get_list
+  // ─────────────────────────────────────────────────────────────────────
+  static Future<List<dynamic>> _fetchUsingGetList(
+      String sid, String mobileNumber, String email) async {
     try {
       print("[IssueService] Using get_list API with expanded fields");
 
-      // Build request body with ALL fields you need - KEEPING description for images
       final Map<String, dynamic> body = {
         "doctype": "Issue",
         "fields": [
@@ -72,35 +73,33 @@ class IssueService {
           "creation", "modified", "raised_by",
           "customer", "customer_name",
           "custom_mobile_number",
-          "issue_type", "resolution_details"
+          "custom_vehical_number",
+          "issue_type", "resolution_details",
         ],
         "limit_page_length": 100,
-        "order_by": "creation desc"
+        "order_by": "creation desc",
       };
 
-      // Try multiple filters to catch all tickets
-      List<List<dynamic>> filters = [];
-
-      // Add multiple possible filter combinations
-      if (customerName.isNotEmpty) {
-        filters.add(["customer", "=", customerName]);
-        filters.add(["raised_by", "=", customerName]);
-        filters.add(["customer_name", "=", customerName]);
-      }
-
-      if (mobileNumber.isNotEmpty) {
-        // Try with custom_mobile_no field
-        filters.add(["custom_mobile_no", "=", mobileNumber]);
-      }
+      // Only filters tied to a unique identity: raised_by (email) or
+      // the mobile stored on the Issue itself. Never `customer`.
+      final List<List<dynamic>> filters = [];
 
       if (email.isNotEmpty && email.contains("@")) {
         filters.add(["raised_by", "=", email]);
       }
 
-      // If we have filters, use them
+      if (mobileNumber.isNotEmpty) {
+        // Some flows create the login email as <mobile>@telemko.com
+        filters.add(["raised_by", "=", "${mobileNumber}@telemko.com"]);
+        filters.add(["custom_mobile_number", "=", mobileNumber]);
+      }
+
       if (filters.isNotEmpty) {
-        // Use OR condition between different filters
+        // Match ANY of the identity filters
         body["or_filters"] = filters;
+      } else {
+        print("[IssueService] No identity available — returning empty");
+        return [];
       }
 
       print("[IssueService] get_list request with filters: $filters");
@@ -118,101 +117,74 @@ class IssueService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        List<dynamic> issues = data["message"] ?? [];
+        final List<dynamic> issues = (data["message"] as List?) ?? [];
 
-        // Sort by creation date (newest first)
         issues.sort((a, b) {
-          final dateA = a["creation"] ?? "";
-          final dateB = b["creation"] ?? "";
+          final dateA = (a["creation"] ?? "").toString();
+          final dateB = (b["creation"] ?? "").toString();
           return dateB.compareTo(dateA);
         });
 
         print("[IssueService] get_list fetched ${issues.length} issues");
 
-        // Debug: Print fields of first ticket
         if (issues.isNotEmpty) {
-          print("[IssueService] First ticket fields:");
-          final firstTicket = issues[0] as Map<String, dynamic>;
-
-          // Check for description (for images)
-          if (firstTicket.containsKey("description") && firstTicket["description"] != null) {
-            final desc = firstTicket["description"].toString();
-            print("  ✓ description: ${desc.length} chars");
-            // Check if it contains images
-            if (desc.contains("<img")) {
-              print("  ✓ Contains images in HTML");
-            }
-          }
-
-          // Check for our custom fields
-          final customFields = ["custom_mobile_no", "custom_vehical_number"];
-          for (final field in customFields) {
-            if (firstTicket.containsKey(field)) {
-              print("  ✓ $field: ${firstTicket[field]}");
-            } else {
-              print("  ✗ $field: NOT FOUND");
-            }
-          }
+          _logFirstTicketFields(issues[0] as Map<String, dynamic>);
         }
 
         return issues;
-      } else {
-        print("[IssueService] get_list failed: ${response.statusCode}");
-        // Don't throw, return empty and try next method
-        return [];
       }
+
+      print("[IssueService] get_list failed: ${response.statusCode}");
+      return [];
     } catch (e) {
       print("[IssueService] Error in get_list: $e");
       return [];
     }
   }
 
-  /// METHOD 2: Direct resource API with expanded fields
-  static Future<List<dynamic>> _fetchUsingResourceAPI(String sid, String customerName, String mobileNumber, String email) async {
+  // ─────────────────────────────────────────────────────────────────────
+  // METHOD 2 — /api/resource/Issue with expanded fields
+  // ─────────────────────────────────────────────────────────────────────
+  static Future<List<dynamic>> _fetchUsingResourceAPI(
+      String sid, String mobileNumber, String email) async {
     try {
       print("[IssueService] Using direct resource API with expanded fields");
 
-
-      final fields = [
+      // NOTE: real field name on the doctype is `custom_mobile_number`
+      final List<String> fields = [
         "name", "subject", "status", "priority", "description",
         "creation", "modified", "raised_by",
         "customer", "customer_name",
-        "custom_mobile_no",
+        "custom_mobile_number",
         "custom_vehical_number",
-        "issue_type", "resolution_details"
+        "issue_type", "resolution_details",
       ];
 
-      String url = "$baseUrl/api/resource/Issue";
-
-      // Build query parameters
-      final params = {
+      final String url = "$baseUrl/api/resource/Issue";
+      final Map<String, String> params = {
         "fields": jsonEncode(fields),
         "order_by": "creation desc",
         "limit_page_length": "100",
       };
 
-      // Build filters
-      List<List<dynamic>> filters = [];
-
-      if (customerName.isNotEmpty) {
-        filters.add(["customer", "=", customerName]);
-        filters.add(["raised_by", "=", customerName]);
-      }
-
-      if (mobileNumber.isNotEmpty) {
-        filters.add(["custom_mobile_no", "=", mobileNumber]);
-      }
+      final List<List<dynamic>> filters = [];
 
       if (email.isNotEmpty && email.contains("@")) {
         filters.add(["raised_by", "=", email]);
       }
 
-      // Add filters if we have any
-      if (filters.isNotEmpty) {
-        params["filters"] = jsonEncode(filters);
+      if (mobileNumber.isNotEmpty) {
+        filters.add(["raised_by", "=", "${mobileNumber}@telemko.com"]);
+        filters.add(["custom_mobile_number", "=", mobileNumber]);
       }
 
-      // Build URL with parameters
+      if (filters.isEmpty) {
+        print("[IssueService] No identity available — returning empty");
+        return [];
+      }
+
+      params["filters"] = jsonEncode(filters);
+
       final uri = Uri.parse(url).replace(queryParameters: params);
       print("[IssueService] Resource API URL: ${uri.toString()}");
 
@@ -228,129 +200,104 @@ class IssueService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        List<dynamic> issues = data["data"] ?? [];
+        final List<dynamic> issues = (data["data"] as List?) ?? [];
 
-        // Sort by creation date (newest first)
         issues.sort((a, b) {
-          final dateA = a["creation"] ?? "";
-          final dateB = b["creation"] ?? "";
+          final dateA = (a["creation"] ?? "").toString();
+          final dateB = (b["creation"] ?? "").toString();
           return dateB.compareTo(dateA);
         });
 
         print("[IssueService] Resource API fetched ${issues.length} issues");
 
-        // Debug: Print first issue fields
         if (issues.isNotEmpty) {
-          print("[IssueService] Checking for fields:");
-          final firstTicket = issues[0] as Map<String, dynamic>;
-
-          // Check description
-          if (firstTicket.containsKey("description") && firstTicket["description"] != null) {
-            final desc = firstTicket["description"].toString();
-            print("  ✓ description: ${desc.length} chars");
-          }
-
-          // Check custom fields
-          final customFields = ["custom_mobile_no", "custom_vehical_number"];
-          for (final field in customFields) {
-            if (firstTicket.containsKey(field)) {
-              print("  ✓ $field: ${firstTicket[field]}");
-            } else {
-              print("  ✗ $field: NOT FOUND");
-            }
-          }
+          _logFirstTicketFields(issues[0] as Map<String, dynamic>);
         }
 
         return issues;
-      } else {
-        print("[IssueService] Resource API failed: ${response.statusCode}");
-
-        // If 417 error (field permission), try with fewer fields
-        if (response.statusCode == 417) {
-          return await _fetchWithMinimalFields(sid, customerName, mobileNumber, email);
-        }
-
-        return [];
       }
+
+      print("[IssueService] Resource API failed: ${response.statusCode}");
+
+      // If Frappe rejects one of our fields, drop to minimal set
+      if (response.statusCode == 417) {
+        return await _fetchWithMinimalFields(sid, mobileNumber, email);
+      }
+
+      return [];
     } catch (e) {
       print("[IssueService] Error in resource API: $e");
       return [];
     }
   }
 
-  /// METHOD 3: Fallback with minimal fields - KEEPING description for images
-  static Future<List<dynamic>> _fetchWithMinimalFields(String sid, String customerName, String mobileNumber, String email) async {
+  // ─────────────────────────────────────────────────────────────────────
+  // METHOD 3 — minimal fields, tried per-identity until one matches
+  // ─────────────────────────────────────────────────────────────────────
+  static Future<List<dynamic>> _fetchWithMinimalFields(
+      String sid, String mobileNumber, String email) async {
     try {
       print("[IssueService] Trying with fallback fields");
 
-      final fields = [
+      final List<String> fields = [
         "name", "subject", "status", "creation",
         "customer", "raised_by", "description",
-        "custom_vehical_number"
+        "custom_vehical_number",
       ];
 
-      String url = "$baseUrl/api/resource/Issue";
-      final params = {
+      final String url = "$baseUrl/api/resource/Issue";
+      final Map<String, String> params = {
         "fields": jsonEncode(fields),
         "order_by": "creation desc",
         "limit_page_length": "100",
       };
 
-      // Try to filter
-      List<String> filterOptions = [];
+      // Ordered, most-specific first.
+      final List<String> filterOptions = [];
 
-      if (customerName.isNotEmpty) {
-        filterOptions.add("[[\"customer\", \"=\", \"$customerName\"]]");
-        filterOptions.add("[[\"raised_by\", \"=\", \"$customerName\"]]");
+      if (email.isNotEmpty && email.contains("@")) {
+        filterOptions.add('[[\"raised_by\", \"=\", \"$email\"]]');
       }
 
-      if (filterOptions.isNotEmpty) {
-        for (final filter in filterOptions) {
-          try {
-            final tempParams = Map<String, String>.from(params);
-            tempParams["filters"] = filter;
+      if (mobileNumber.isNotEmpty) {
+        filterOptions.add('[[\"raised_by\", \"=\", \"${mobileNumber}@telemko.com\"]]');
+        filterOptions.add('[[\"custom_mobile_number\", \"=\", \"$mobileNumber\"]]');
+      }
 
-            final uri = Uri.parse(url).replace(queryParameters: tempParams);
-            print("[IssueService] Trying filter: $filter");
+      if (filterOptions.isEmpty) {
+        print("[IssueService] No unique filter available — returning empty");
+        return [];
+      }
 
-            final response = await http.get(
-              uri,
-              headers: {
-                "Content-Type": "application/json",
-                "Cookie": "sid=$sid",
-              },
-            );
+      for (final filter in filterOptions) {
+        try {
+          final tempParams = Map<String, String>.from(params);
+          tempParams["filters"] = filter;
 
-            if (response.statusCode == 200) {
-              final data = jsonDecode(response.body);
-              List<dynamic> issues = data["data"] ?? [];
+          final uri = Uri.parse(url).replace(queryParameters: tempParams);
+          print("[IssueService] Trying filter: $filter");
 
-              if (issues.isNotEmpty) {
-                print("[IssueService] Found ${issues.length} issues with filter: $filter");
+          final response = await http.get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Cookie": "sid=$sid",
+            },
+          );
 
-                if (issues.isNotEmpty) {
-                  final firstTicket = issues[0] as Map<String, dynamic>;
-
-                  if (firstTicket.containsKey("description") && firstTicket["description"] != null) {
-                    print("[IssueService] ✓ description found in fallback: ${firstTicket["description"].toString().length} chars");
-                  }
-
-                  if (firstTicket.containsKey("custom_vehical_number")) {
-                    print("[IssueService] ✓ custom_vehical_number found in fallback: ${firstTicket["custom_vehical_number"]}");
-                  }
-                }
-
-                return issues;
-              }
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            final List<dynamic> issues = (data["data"] as List?) ?? [];
+            if (issues.isNotEmpty) {
+              print("[IssueService] Found ${issues.length} issues with filter: $filter");
+              return issues;
             }
-          } catch (e) {
-            print("[IssueService] Filter $filter failed: $e");
           }
+        } catch (e) {
+          print("[IssueService] Filter $filter failed: $e");
         }
       }
 
-      // All filters returned empty (user has no tickets) or no filters available.
-      // Return empty list - do NOT make an unfiltered request (that would show all users' tickets).
       print("[IssueService] No tickets found for user");
       return [];
     } catch (e) {
@@ -359,16 +306,15 @@ class IssueService {
     }
   }
 
-  /// TEST METHOD: Fetch a single ticket by ID to debug fields
+  // ─────────────────────────────────────────────────────────────────────
+  // TEST METHOD — fetch one ticket by ID
+  // ─────────────────────────────────────────────────────────────────────
   static Future<Map<String, dynamic>?> fetchTicketById(String ticketId) async {
     try {
       final session = await SessionManager.getCustomerSession();
-      if (session == null || session["sid"] == null) {
-        return null;
-      }
+      if (session == null || session["sid"] == null) return null;
 
       final sid = session["sid"];
-
       final response = await http.get(
         Uri.parse("$baseUrl/api/resource/Issue/$ticketId"),
         headers: {
@@ -381,11 +327,34 @@ class IssueService {
         final data = jsonDecode(response.body);
         return data["data"];
       }
-
       return null;
     } catch (e) {
       print("[IssueService] Error fetching ticket by ID: $e");
       return null;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Debug helper
+  // ─────────────────────────────────────────────────────────────────────
+  static void _logFirstTicketFields(Map<String, dynamic> firstTicket) {
+    print("[IssueService] First ticket fields:");
+
+    if (firstTicket["description"] != null) {
+      final desc = firstTicket["description"].toString();
+      print("  ✓ description: ${desc.length} chars");
+      if (desc.contains("<img")) {
+        print("  ✓ Contains images in HTML");
+      }
+    }
+
+    const customFields = ["custom_mobile_number", "custom_vehical_number"];
+    for (final field in customFields) {
+      if (firstTicket.containsKey(field)) {
+        print("  ✓ $field: ${firstTicket[field]}");
+      } else {
+        print("  ✗ $field: NOT FOUND");
+      }
     }
   }
 }

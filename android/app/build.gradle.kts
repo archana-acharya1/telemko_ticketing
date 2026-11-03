@@ -14,7 +14,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.telemko.telemko_support"
+    namespace = "com.telemko.telemko_service"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -28,10 +28,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.telemko.telemko_support"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "com.telemko.telemko_service"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -40,20 +37,29 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
+            val alias = keystoreProperties["keyAlias"] as? String
+            val keyPass = keystoreProperties["keyPassword"] as? String
+            val storeFilePath = keystoreProperties["storeFile"] as? String
+            val storePass = keystoreProperties["storePassword"] as? String
+
+            if (alias != null && keyPass != null && storeFilePath != null && storePass != null) {
+                keyAlias = alias
+                keyPassword = keyPass
+                storeFile = file(storeFilePath)
+                storePassword = storePass
+            }
         }
     }
+
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            val releaseConfig = signingConfigs.getByName("release")
+            // Fall back to debug signing if release key details are missing
+            signingConfig = if (releaseConfig.storeFile != null) releaseConfig else signingConfigs.getByName("debug")
             isMinifyEnabled = false
             isShrinkResources = false
         }
     }
-
 }
 
 flutter {

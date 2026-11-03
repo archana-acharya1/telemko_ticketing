@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../presentation/screens/dashboard/lib/data/local/session_manager.dart';
 
 class LoginService {
-  static const String baseUrl = "http://erp.telemko.com";
+  static const String baseUrl = "https://erp.telemko.com";
 
   static Future<bool> login({
     required String identifier,

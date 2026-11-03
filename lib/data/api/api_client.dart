@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiClient {
   static String? _sid;
-  static const String baseUrl = "http://erp.telemko.com";
+  static const String baseUrl = "https://erp.telemko.com";
 
   /// Set SID for session
   static void setSid(String? sid) {

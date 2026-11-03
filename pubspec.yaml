@@ -1,4 +1,4 @@
-name: telemko_support
+name: telemko_service
 description: "A new Flutter project."
 publish_to: 'none'
 
@@ -16,7 +16,7 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   url_launcher: ^6.3.2
-  font_awesome_flutter: ^10.12.0
+  font_awesome_flutter: ^11.0.0
   flutter_phone_direct_caller: ^2.2.1
   image_picker: ^1.2.1
   frappe_dart: ^0.0.5

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:telemko_support/presentation/screens/profile/profile_screen.dart';
-import 'package:telemko_support/presentation/screens/tickets/ticket_selection_screen.dart';
+import 'package:telemko_service/presentation/screens/profile/profile_screen.dart';
+import 'package:telemko_service/presentation/screens/tickets/ticket_selection_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../dashboard/payment_screen.dart';
 import '../dashboard/devices_screen.dart';

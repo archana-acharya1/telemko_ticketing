@@ -4,9 +4,9 @@ import '../presentation/screens/dashboard/lib/data/local/session_manager.dart';
 
 
 class AuthService {
-  static const otpLoginUrl = "http://erp.telemko.com/api/method/telemko_support.api.custom_mobile_login.mobile_login";
-  static const sendOtpUrl = "http://erp.telemko.com/api/method/telemko_support.api.send_otp.send_otp";
-  static const passwordLoginUrl = "http://erp.telemko.com/api/method/login";
+  static const otpLoginUrl = "https://erp.telemko.com/api/method/telemko_support.api.custom_mobile_login.mobile_login";
+  static const sendOtpUrl = "https://erp.telemko.com/api/method/telemko_support.api.send_otp.send_otp";
+  static const passwordLoginUrl = "https://erp.telemko.com/api/method/login";
 
   static Future<bool> sendOtp(String mobile) async {
     final res = await http.post(Uri.parse(sendOtpUrl), body: {"mobile": mobile});

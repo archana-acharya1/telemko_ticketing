@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class SmsApi {
-  static const baseUrl = "http://erp.telemko.com";
+  static const baseUrl = "https://erp.telemko.com";
 
   static Future<bool> sendOtp({required String mobileNo}) async {
     final response = await http.post(

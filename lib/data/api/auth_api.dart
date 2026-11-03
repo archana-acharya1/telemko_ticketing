@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthApi {
-  static const loginUrl = "http://erp.telemko.com/api/method/login";
-  static const mobileLoginUrl = "http://erp.telemko.com/api/method/telemko_support.api.custom_mobile_login.mobile_login";
+  static const loginUrl = "https://erp.telemko.com/api/method/login";
+  static const mobileLoginUrl = "https://erp.telemko.com/api/method/telemko_support.api.custom_mobile_login.mobile_login";
 
   static Future<Map<String, dynamic>?> login({
     required String usr,

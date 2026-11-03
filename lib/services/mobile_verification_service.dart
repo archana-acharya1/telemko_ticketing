@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import '../presentation/screens/dashboard/lib/data/local/session_manager.dart';
 
 class MobileVerificationService {
-  static const String baseUrl = "http://erp.telemko.com";
+  static const String baseUrl = "https://erp.telemko.com";
   static const String apiToken = "d8194889a199fc4:598c54965a4e106";
 
   static String? _extractSidFromSetCookie(Map<String, String> headers) {
@@ -248,6 +248,7 @@ class MobileVerificationService {
       // ✅ FIX: Create request body with optional fields
       Map<String, dynamic> requestBody = {
         "mobile_no": mobileNo,
+        "custom_mobile_no": mobileNo,
         "otp": otp,
         "customer_name": customerName,
         "email_id": emailId,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:telemko_support/presentation/screens/auth/sms_auth_screen.dart';
-import 'package:telemko_support/presentation/screens/dashboard/lib/data/local/session_manager.dart';
-import 'package:telemko_support/presentation/screens/navbar/main_navbar.dart';
-import 'package:telemko_support/services/mobile_verification_service.dart';
+import 'package:telemko_service/presentation/screens/auth/sms_auth_screen.dart';
+import 'package:telemko_service/presentation/screens/dashboard/lib/data/local/session_manager.dart';
+import 'package:telemko_service/presentation/screens/navbar/main_navbar.dart';
+import 'package:telemko_service/services/mobile_verification_service.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_constants.dart';
 import '../../widgets/app_button.dart';

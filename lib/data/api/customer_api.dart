@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class CustomerApi {
-  static const String baseUrl = "http://erp.telemko.com";
+  static const String baseUrl = "https://erp.telemko.com";
   static const String authToken = "token 2259d1e51dadce0:e4b7dfc664256d8";
 
   /// Verify if customer exists by mobile number

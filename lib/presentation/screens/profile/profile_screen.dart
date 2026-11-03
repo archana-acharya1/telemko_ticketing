@@ -41,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       // First, get logged username from Frappe
-      final loggedUserUrl = Uri.parse("http://erp.telemko.com/api/method/frappe.auth.get_logged_user");
+      final loggedUserUrl = Uri.parse("https://erp.telemko.com/api/method/frappe.auth.get_logged_user");
 
       final loggedUserResponse = await http.get(
         loggedUserUrl,
@@ -90,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _fetchCustomerByMobile(String sid, String mobileNumber, Map<String, dynamic>? session) async {
     try {
       final customerUrl = Uri.parse(
-          "http://erp.telemko.com/api/resource/Customer"
+          "https://erp.telemko.com/api/resource/Customer"
               "?fields=[\"customer_name\", \"mobile_no\", \"email_id\"]"
               "&filters=[[\"mobile_no\", \"=\", \"$mobileNumber\"]]"
               "&limit_page_length=1"
@@ -129,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       // Try to get from User doctype first
       final userUrl = Uri.parse(
-          "http://erp.telemko.com/api/resource/User/$username"
+          "https://erp.telemko.com/api/resource/User/$username"
               "?fields=[\"email\", \"full_name\", \"mobile_no\"]"
       );
 
@@ -170,7 +170,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _fetchCustomerByEmail(String sid, String email, Map<String, dynamic>? session) async {
     try {
       final customerUrl = Uri.parse(
-          "http://erp.telemko.com/api/resource/Customer"
+          "https://erp.telemko.com/api/resource/Customer"
               "?fields=[\"customer_name\", \"mobile_no\", \"email_id\"]"
               "&filters=[[\"email_id\", \"=\", \"$email\"]]"
               "&limit_page_length=1"
@@ -209,7 +209,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String filterValue = username;
 
       final customerUrl = Uri.parse(
-          "http://erp.telemko.com/api/resource/Customer"
+          "https://erp.telemko.com/api/resource/Customer"
               "?fields=[\"customer_name\", \"mobile_no\", \"email_id\"]"
               "&filters=[[\"$filterField\", \"=\", \"$filterValue\"]]"
               "&limit_page_length=1"

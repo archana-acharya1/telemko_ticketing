@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:telemko_support/core/theme/app_theme.dart';
-import 'package:telemko_support/presentation/screens/auth/auth_gate.dart';
-import 'package:telemko_support/presentation/screens/dashboard/lib/data/local/session_manager.dart';
+import 'package:telemko_service/presentation/screens/auth/auth_gate.dart';
+import 'package:telemko_service/presentation/screens/dashboard/lib/data/local/session_manager.dart';
+
+import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Telemko Support',
+      title: 'Telemko Service',
 
       themeMode: ThemeMode.system,
 

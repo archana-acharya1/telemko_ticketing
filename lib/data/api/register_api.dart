@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class RegisterApi {
-  static const String baseUrl = "http://erp.telemko.com";
+  static const String baseUrl = "https://erp.telemko.com";
 
   /// Check if mobile number already registered
   static Future<bool> isMobileAlreadyRegistered(String mobileNo) async {

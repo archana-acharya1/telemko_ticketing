@@ -1,4 +1,4 @@
-import 'package:telemko_support/presentation/screens/dashboard/lib/data/local/session_manager.dart';
+import 'package:telemko_service/presentation/screens/dashboard/lib/data/local/session_manager.dart';
 
 class SessionHelper {
   // Save session after username/password login

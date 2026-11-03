@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:telemko_support/presentation/screens/tickets/ticket_form_screen.dart';
+import 'package:telemko_service/presentation/screens/tickets/ticket_form_screen.dart';
 import '../../../services/issue_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -304,7 +304,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen> {
           if (url != null && url.isNotEmpty && (url.contains('http') || url.contains('/files/'))) {
             String fullUrl = url;
             if (url.startsWith('/files/')) {
-              fullUrl = 'http://erp.telemko.com$url';
+              fullUrl = 'https://erp.telemko.com$url';
             }
             urls.add(fullUrl);
           }

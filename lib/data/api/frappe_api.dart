@@ -6,7 +6,7 @@ import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 
 class FrappeApi {
-  static const String baseUrl = "http://erp.telemko.com";
+  static const String baseUrl = "https://erp.telemko.com";
   static const String apiToken = "2259d1e51dadce0:e4b7dfc664256d8";
 
   static Map<String, String> get headers => {

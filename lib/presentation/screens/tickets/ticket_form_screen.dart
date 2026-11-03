@@ -152,7 +152,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
         print("[TicketFormScreen] Uploading file: $fileName");
 
-        final url = Uri.parse("http://erp.telemko.com/api/method/upload_file");
+        final url = Uri.parse("https://erp.telemko.com/api/method/upload_file");
 
         final request = http.MultipartRequest('POST', url);
         request.headers['Cookie'] = 'sid=$sid';
@@ -188,7 +188,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
               }
 
               if (fileUrl.startsWith('/files/')) {
-                fileUrl = 'http://erp.telemko.com$fileUrl';
+                fileUrl = 'https://erp.telemko.com$fileUrl';
               }
 
               uploadedUrls.add(fileUrl);
@@ -393,7 +393,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
       print("📤 Sending ticket data: $ticketData");
 
-      final url = Uri.parse("http://erp.telemko.com/api/resource/Issue");
+      final url = Uri.parse("https://erp.telemko.com/api/resource/Issue");
 
       final response = await http.post(
         url,

@@ -35,12 +35,14 @@ class CustomerSupportScreen extends StatelessWidget {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
       print("[CustomerSupport] WhatsApp not available");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Could not open WhatsApp"),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Could not open WhatsApp"),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     }
   }
 
@@ -69,7 +71,7 @@ class CustomerSupportScreen extends StatelessWidget {
     if (await canLaunchUrl(emailUri)) {
       print("[CustomerSupport] Launching Email app");
       await launchUrl(emailUri, mode: LaunchMode.externalApplication);
-    } else{
+    } else {
       print("[Customer Support] Email app not available");
     }
   }
@@ -77,14 +79,13 @@ class CustomerSupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     print("[CustomerSupport] Screen Loaded");
     return Scaffold(
       appBar: AppBar(
         title: Text(
           "Customer Support",
-          style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onPrimary,
@@ -93,7 +94,6 @@ class CustomerSupportScreen extends StatelessWidget {
         centerTitle: true,
         backgroundColor: primaryColor,
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -101,50 +101,65 @@ class CustomerSupportScreen extends StatelessWidget {
             Center(
               child: Text(
                 "Contact Us",
-                style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
 
+            // Call Support Tile
             _buildSupportTile(
               context: context,
-              icon: Icons.call_outlined,
-              iconColor: Colors.green,
+              iconWidget: Icon(
+                Icons.call_outlined,
+                color: Colors.green,
+                size: 24,
+              ),
               title: "Call Support ($supportPhone)",
               onTap: () => _callNumber(supportPhone),
             ),
 
             const SizedBox(height: 15),
 
+            // WhatsApp Tile
             _buildSupportTile(
               context: context,
-              icon: FontAwesomeIcons.whatsapp,
-              iconColor: Colors.green,
+              iconWidget: const FaIcon(
+                FontAwesomeIcons.whatsapp,
+                color: Color(0xFF25D366), // Official WhatsApp green
+                size: 24,
+              ),
               title: "Chat on WhatsApp",
               onTap: () => _openWhatsApp(context, whatsappPhone),
             ),
 
             const SizedBox(height: 15),
 
+            // Facebook Messenger Tile
             _buildSupportTile(
               context: context,
-              icon: FontAwesomeIcons.facebookMessenger,
-              iconColor: Colors.blue,
+              iconWidget: const FaIcon(
+                FontAwesomeIcons.facebookMessenger,
+                color: Color(0xFF0084FF), // Official Messenger blue
+                size: 24,
+              ),
               title: "Chat on Facebook Messenger",
               onTap: () => _openFacebookChat(facebookPageId),
             ),
 
             const SizedBox(height: 15),
 
+            // Email Tile
             _buildSupportTile(
               context: context,
-              icon: Icons.mail_outline,
-              iconColor: primaryColor,
+              iconWidget: Icon(
+                Icons.mail_outline,
+                color: primaryColor,
+                size: 24,
+              ),
               title: "Email Us",
               onTap: () => openEmail(context),
             ),
@@ -158,8 +173,7 @@ class CustomerSupportScreen extends StatelessWidget {
 
   Widget _buildSupportTile({
     required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
+    required Widget iconWidget,
     required String title,
     required VoidCallback onTap,
   }) {
@@ -167,17 +181,17 @@ class CustomerSupportScreen extends StatelessWidget {
 
     return Card(
       color: isDarkMode
-          ? Theme.of(context).colorScheme.surfaceVariant
+          ? Theme.of(context).colorScheme.surfaceContainerHighest
           : Theme.of(context).colorScheme.surface,
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        leading: Icon(icon, color: iconColor),
+        leading: iconWidget,
         title: Text(
           title,
-          style: TextStyle( // Fixed: Use TextStyle instead of AppTextStyles
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.normal,
             color: Theme.of(context).colorScheme.onSurface,
