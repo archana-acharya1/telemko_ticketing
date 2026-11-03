@@ -711,18 +711,19 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                         const SizedBox(height: 10),
 
                         // OTP timer
+                        // OTP timer
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: _isOtpExpired
-                                ? colorScheme.errorContainer
-                                : colorScheme.primaryContainer,
+                                ? Colors.red.shade50
+                                : const Color(0xFFE3F2FD),
                             borderRadius: BorderRadius.circular(AppRadius.md),
                             border: Border.all(
                               color: _isOtpExpired
-                                  ? colorScheme.error
-                                  : colorScheme.primary,
-                              width: 1,
+                                  ? Colors.red
+                                  : const Color(0xFF2196F3),
                             ),
                           ),
                           child: Row(
@@ -731,17 +732,19 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                               Icon(
                                 _isOtpExpired ? Icons.timer_off : Icons.timer,
                                 color: _isOtpExpired
-                                    ? colorScheme.error
-                                    : colorScheme.primary,
+                                    ? Colors.red.shade700
+                                    : const Color(0xFF1565C0),
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                _isOtpExpired ? "OTP Expired" : "Valid for ${_formatTime(_otpSecondsRemaining)}",
+                                _isOtpExpired
+                                    ? "OTP Expired"
+                                    : "Valid for ${_formatTime(_otpSecondsRemaining)}",
                                 style: TextStyle(
                                   color: _isOtpExpired
-                                      ? colorScheme.error
-                                      : colorScheme.primary,
+                                      ? Colors.red.shade700
+                                      : const Color(0xFF1565C0),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
                                 ),
