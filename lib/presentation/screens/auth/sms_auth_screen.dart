@@ -759,43 +759,77 @@ class _SmsAuthScreenState extends State<SmsAuthScreen> {
                       const SizedBox(height: 20),
 
                       // Main action button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: isLoading ? null : (otpSent ? _verifyOtp : _sendOtp),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorScheme.primary,
-                            foregroundColor: colorScheme.onPrimary,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadius.md),
+                      // SizedBox(
+                      //   width: double.infinity,
+                      //   child: ElevatedButton(
+                      //     onPressed: isLoading ? null : (otpSent ? _verifyOtp : _sendOtp),
+                      //     style: ElevatedButton.styleFrom(
+                      //       backgroundColor: colorScheme.primary,
+                      //       foregroundColor: colorScheme.onPrimary,
+                      //       padding: const EdgeInsets.symmetric(vertical: 16),
+                      //       shape: RoundedRectangleBorder(
+                      //         borderRadius: BorderRadius.circular(AppRadius.md),
+                      //       ),
+                      //       elevation: 0,
+                      //     ),
+                      //     child: isLoading
+                      //         ? SizedBox(
+                      //       width: 20,
+                      //       height: 20,
+                      //       child: CircularProgressIndicator(
+                      //         color: colorScheme.onPrimary,
+                      //         strokeWidth: 2,
+                      //       ),
+                      //     )
+                      //         : Text(
+                      //       isLoading
+                      //           ? "Please wait..."
+                      //           : otpSent
+                      //           ? (isExistingUser == true ? "Login" : "Continue Registration")
+                      //           : "Send OTP",
+                      //       style: TextStyle(
+                      //         color: colorScheme.onPrimary,
+                      //         fontSize: 18,
+                      //         fontWeight: FontWeight.w600,
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
+
+
+                      // Send OTP button (only shown before OTP is sent)
+                      if (!otpSent)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : _sendOtp,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: colorScheme.onPrimary,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                              ),
+                              elevation: 0,
                             ),
-                            elevation: 0,
-                          ),
-                          child: isLoading
-                              ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: colorScheme.onPrimary,
-                              strokeWidth: 2,
-                            ),
-                          )
-                              : Text(
-                            isLoading
-                                ? "Please wait..."
-                                : otpSent
-                                ? (isExistingUser == true ? "Login" : "Continue Registration")
-                                : "Send OTP",
-                            style: TextStyle(
-                              color: colorScheme.onPrimary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                            child: isLoading
+                                ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: colorScheme.onPrimary,
+                                strokeWidth: 2,
+                              ),
+                            )
+                                : const Text(
+                              "Send OTP",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-
                       const SizedBox(height: 16),
 
                       // Resend OTP button (when expired)

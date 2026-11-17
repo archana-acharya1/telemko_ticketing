@@ -1,3 +1,4 @@
+
 import java.util.Properties
 import java.io.FileInputStream
 
@@ -9,8 +10,11 @@ plugins {
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
+
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    keystorePropertiesFile.inputStream().use {
+        keystoreProperties.load(it)
+    }
 }
 
 android {
@@ -31,6 +35,7 @@ android {
         applicationId = "com.telemko.telemko_service"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
+
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -42,7 +47,12 @@ android {
             val storeFilePath = keystoreProperties["storeFile"] as? String
             val storePass = keystoreProperties["storePassword"] as? String
 
-            if (alias != null && keyPass != null && storeFilePath != null && storePass != null) {
+            if (
+                alias != null &&
+                keyPass != null &&
+                storeFilePath != null &&
+                storePass != null
+            ) {
                 keyAlias = alias
                 keyPassword = keyPass
                 storeFile = file(storeFilePath)
@@ -53,9 +63,8 @@ android {
 
     buildTypes {
         getByName("release") {
-            val releaseConfig = signingConfigs.getByName("release")
-            // Fall back to debug signing if release key details are missing
-            signingConfig = if (releaseConfig.storeFile != null) releaseConfig else signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
+
             isMinifyEnabled = false
             isShrinkResources = false
         }
